@@ -5,6 +5,7 @@ var vm = new Vue({
     el: '#app',
     data: {
         progressData: [],
+        onlyUnfinished: false,
         members: [],
         tailsData: [],
         tailsDataVisible: false,
@@ -18,6 +19,11 @@ var vm = new Vue({
         today: 0,
         isMobile: false,
         tempList:[0,1,2,3,4,5],
+    },
+    computed: {
+        visibleProgressData: function () {
+            return this.onlyUnfinished ? this.progressData.filter(row => row.finished < 3) : this.progressData;
+        },
     },
     mounted() {
         var thisvue = this;
@@ -306,7 +312,7 @@ var vm = new Vue({
             this.multipleSelection = val;
         },
         selectUnfinished(event) {
-            this.progressData.forEach(row => {
+            this.visibleProgressData.forEach(row => {
                 if (row.finished < 3) {
                     this.$refs.multipleTable.toggleRowSelection(row, true);
                 } else {
