@@ -1,16 +1,20 @@
 /* Shared presentation layer. Legacy layout and component behavior stay local. */
 html.yobot-ui {
   color-scheme: light;
-  --primary-color-1: #3568d4;
-  --primary-color-2: #eaf0ff;
+  --primary-color-1: #4f46e5;
+  --primary-color-2: #eeedff;
   --secondary-color-1: #3568d4;
   --secondary-color-2: #244da6;
   --background-color: #f4f7fc;
   --font-color: #263650;
   --ui-muted: #63748d;
-  --ui-border: #e2e8f2;
-  --ui-shadow: 0 6px 24px rgba(31, 55, 93, .045);
-  background: var(--background-color);
+  --ui-border: #dce3f1;
+  --ui-shadow: 0 12px 36px rgba(33, 48, 91, .08), 0 2px 6px rgba(33, 48, 91, .035);
+  --ui-accent: #4f46e5;
+  --ui-ease: cubic-bezier(.22, 1, .36, 1);
+  background: radial-gradient(ellipse at 5% 0%, #dfe6ff 0, transparent 48%),
+    radial-gradient(ellipse at 96% 18%, #dcf3f5 0, transparent 42%), #f3f5fb;
+  min-height: 100%;
 }
 .yobot-ui body {
   margin: 0;
@@ -57,20 +61,22 @@ html.yobot-ui {
   display: flex;
   align-items: center;
   gap: 24px;
-  background: #fff;
-  border-bottom: 1px solid var(--ui-border);
-  box-shadow: 0 2px 12px rgba(31, 55, 93, .035);
+  background: rgba(17, 28, 57, .95);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(169, 195, 255, .16);
+  box-shadow: 0 8px 32px rgba(17, 28, 57, .18);
   z-index: 100;
 }
 .yobot-ui #topToolbar::before {
   content: "YOBOT";
-  color: #263650;
+  color: #fff;
   font-size: 19px;
   font-weight: 750;
   letter-spacing: 1.8px;
 }
-.yobot-ui #topToolbar .el-page-header { position: static; flex-shrink: 0; color: var(--ui-muted); }
-.yobot-ui #topToolbar .el-page-header__title { color: var(--ui-muted); }
+.yobot-ui #topToolbar .el-page-header { position: static; flex-shrink: 0; color: #b9c8e5; }
+.yobot-ui #topToolbar .el-page-header__title, .yobot-ui #topToolbar .el-icon-back:before { color: #b9c8e5; }
 .yobot-ui #topToolbar .el-page-header__left::after { display: none; }
 .yobot-ui .el-icon-back:before { color: var(--ui-muted); }
 .yobot-ui .el-button--primary .el-icon-back:before { color: #fff; }
@@ -87,26 +93,28 @@ html.yobot-ui {
   height: 68px;
   line-height: 68px;
   padding: 0 20px;
-  color: var(--ui-muted);
+  color: #b9c8e5;
   font-weight: 500;
+  transition: color .2s ease, background-color .2s ease, border-color .2s ease;
   border-bottom: 3px solid transparent;
   background: transparent;
 }
 .yobot-ui #topToolbar .el-menu-item.is-active,
 .yobot-ui #topToolbar .el-menu-item:hover,
 .yobot-ui #topToolbar .el-menu-item:focus {
-  color: #3568d4;
-  border-bottom-color: #3568d4;
-  background: #f6f9ff;
+  color: #fff;
+  border-bottom-color: #75dfec;
+  background: rgba(142, 168, 235, .12);
 }
 
 /* Consistent form controls, with red reserved for destructive actions. */
-.yobot-ui .el-button { border-radius: 8px; font-weight: 500; box-shadow: none; }
+.yobot-ui .el-button { border-radius: 10px; font-weight: 550; box-shadow: none;
+  transition: background-color .2s ease, border-color .2s ease, box-shadow .25s ease, transform .2s var(--ui-ease); }
 .yobot-ui .el-button:not(.is-circle):not(.Service-item) { min-height: 36px; }
 .yobot-ui .el-button--default { color: #425570; border-color: #d8e1ee; background: #fff; }
 .yobot-ui .el-button--default:hover { color: #3568d4; background: #f0f5ff; border-color: #9cb7ee; }
-.yobot-ui .el-button--primary { background: #3568d4; border-color: #3568d4; color: #fff; }
-.yobot-ui .el-button--primary:hover { background: #2859be; border-color: #2859be; }
+.yobot-ui .el-button--primary { background: linear-gradient(115deg, #4f46e5, #386be3); border-color: #4f46e5; color: #fff; box-shadow: 0 5px 14px rgba(79, 70, 229, .2); }
+.yobot-ui .el-button--primary:hover { background: linear-gradient(115deg, #4338ca, #2859be); border-color: #4338ca; box-shadow: 0 8px 20px rgba(79, 70, 229, .26); }
 .yobot-ui .el-button--info { color: #425570; background: #edf2f9; border-color: #e0e7f1; }
 .yobot-ui .el-button--info:hover { color: #3568d4; background: #e4edff; border-color: #b9ccf1; }
 .yobot-ui .el-button--danger { background: #cb4651; border-color: #cb4651; color: #fff; }
@@ -118,7 +126,8 @@ html.yobot-ui {
   color: var(--font-color);
   background: #fff;
 }
-.yobot-ui .el-input__inner:focus, .yobot-ui .el-textarea__inner:focus { border-color: #3568d4; }
+.yobot-ui .el-input__inner, .yobot-ui .el-textarea__inner { transition: border-color .2s ease, box-shadow .2s ease; }
+.yobot-ui .el-input__inner:focus, .yobot-ui .el-textarea__inner:focus { border-color: #7165ea; box-shadow: 0 0 0 3px rgba(113, 101, 234, .1); }
 .yobot-ui .el-input__inner::placeholder, .yobot-ui .el-textarea__inner::placeholder { color: #8794a8; }
 .yobot-ui .el-form-item__label { color: #52637b; }
 .yobot-ui .el-checkbox__label, .yobot-ui .el-radio__label { color: #52637b; }
@@ -137,7 +146,7 @@ html.yobot-ui {
 
 /* Tables keep their internal scrollbars, rather than widening the page. */
 .yobot-ui .el-table { border: 1px solid var(--ui-border); border-radius: 12px; box-shadow: var(--ui-shadow); color: #425570; }
-.yobot-ui .el-table th, .yobot-ui .el-table__header { background: #f1f5fc; color: #52637b; font-weight: 600; }
+.yobot-ui .el-table th, .yobot-ui .el-table__header { background: #eaf0fb; color: #3e4b73; font-weight: 600; }
 .yobot-ui .el-table td, .yobot-ui .el-table th.is-leaf { border-bottom-color: #edf1f7; }
 .yobot-ui .el-table--enable-row-transition .el-table__body td { background: #fff; }
 .yobot-ui .el-table--striped .el-table__body tr.el-table__row--striped td { background: #f8fafd; }
@@ -196,7 +205,7 @@ html.yobot-ui {
 .yobot-ui .boss-card > div { font-size: 13px; }
 .yobot-ui .boss-card .boss-title { color: #263650; font-size: 14px; min-height: 44px; margin-bottom: 12px; }
 .yobot-ui .boss_info-single_health_box { height: 22px; border: 0; border-radius: 7px; background: #f0f3f9; margin: 4px 0 8px; float: none; overflow: hidden; }
-.yobot-ui .boss_info-single_health { height: 22px; line-height: 22px; background: #3a9c89; border-radius: 7px; color: #fff; font-size: 12px; font-weight: 600; }
+.yobot-ui .boss_info-single_health { height: 22px; line-height: 22px; background: linear-gradient(90deg, #218674, #2ba5a0); border-radius: 7px; color: #fff; font-size: 12px; font-weight: 600; }
 .yobot-ui .boss_info-single_challenger { height: auto; padding: 6px 10px; border: 1px solid #e2e9f5; border-radius: 7px; background: #f1f5fc; color: #52637b; font-size: 12px; line-height: 20px; margin: 12px 0; cursor: pointer; }
 .yobot-ui .challengers_window { background: #344a6b; color: #fff; border: 0; box-shadow: 0 8px 24px rgba(18,40,75,.18); width: 240px; max-width: calc(100vw - 40px); transform: none; left: 0; padding: 12px; border-radius: 10px; }
 .yobot-ui .small-buttons-row { gap: 6px; margin-bottom: 6px; }
@@ -206,7 +215,7 @@ html.yobot-ui {
 .yobot-ui .buttons-row { gap: 12px; flex-wrap: wrap; justify-content: center; margin: 16px 0 24px !important; }
 .yobot-ui .buttons-row > div { min-width: 110px; }
 .yobot-ui .buttons-row .el-button { height: auto; }
-.yobot-ui .ui-panel .report-button { background: #3568d4; border-color: #3568d4; color: #fff; }
+.yobot-ui .ui-panel .report-button { background: linear-gradient(115deg, #4f46e5, #386be3); border-color: #4f46e5; color: #fff; }
 .yobot-ui .ui-panel .report-button:hover { background: #2859be; }
 .yobot-ui .mobile-boss-card { margin: 0 0 14px !important; padding: 16px; border: 1px solid var(--ui-border); border-radius: 14px; background: #fff !important; box-shadow: var(--ui-shadow); }
 .yobot-ui .mobile-boss-card > .el-col:first-child { width: 25%; }
@@ -214,7 +223,12 @@ html.yobot-ui {
 .yobot-ui .mobile-boss-card > .el-col:nth-child(2) { width: 72% !important; margin-right: 0 !important; height: auto !important; min-height: 112px; }
 .yobot-ui .mobile-boss-card .boss_info-single_challenger { width: auto !important; margin: 8px 0 !important; height: auto !important; }
 .yobot-ui .phone_spread { position: static; margin: 0; clear: both; }
-.yobot-ui .phone_control { height: auto; margin-top: 12px; }
+.yobot-ui .phone_control { clear: both; width: 100%; height: auto; padding-top: 12px; margin-top: 0; }
+.yobot-ui .phone_control .small-buttons-row2 { gap: 8px; margin: 0 !important; }
+.yobot-ui .phone_control .small-buttons-row2 > div { flex: 1; min-width: 0; margin: 0 !important; }
+.yobot-ui .phone_control .small-buttons-row2 > div > .el-button { width: 100% !important; padding: 9px 6px; }
+.yobot-ui .phone_control.phone_draw-enter-active, .yobot-ui .phone_control.phone_draw-leave-active { transition: opacity .2s ease; }
+.yobot-ui .phone_control.phone_draw-enter, .yobot-ui .phone_control.phone_draw-leave-to { opacity: 0; }
 
 /* Landing, sign-in and account pages use the same calm surfaces. */
 .yobot-ui .header { background: transparent; color: #263650; margin: 0 auto; }
@@ -281,6 +295,99 @@ html.yobot-ui {
 .yobot-ui .ui-admin .el-form--inline { padding: 20px; background: #fff; border: 1px solid var(--ui-border); border-radius: 12px; margin-bottom: 20px; text-align: left; }
 .yobot-ui .ui-admin .el-page-header { margin: 0 0 24px; color: var(--ui-muted); }
 
+/* Layered surfaces and restrained motion. Containers with fixed dialogs never transform. */
+.yobot-ui .ui-admin .el-page-header, .yobot-ui .ui-chart .el-page-header {
+  padding: 22px 24px;
+  border: 1px solid rgba(152, 177, 242, .2);
+  border-radius: 16px;
+  background: radial-gradient(ellipse at 100% 0%, rgba(70, 131, 196, .55), transparent 65%),
+    linear-gradient(110deg, #172342, #2c3866);
+  box-shadow: 0 12px 30px rgba(28, 42, 78, .14);
+  color: #d5e1fb;
+}
+.yobot-ui .ui-admin .el-page-header__content, .yobot-ui .ui-chart .el-page-header__content {
+  color: #fff; font-weight: 650; letter-spacing: .3px;
+}
+.yobot-ui .ui-admin .el-page-header .el-icon-back:before,
+.yobot-ui .ui-chart .el-page-header .el-icon-back:before { color: #d5e1fb; }
+.yobot-ui .ui-admin .el-page-header__left::after,
+.yobot-ui .ui-chart .el-page-header__left::after { background-color: rgba(213, 225, 251, .25); }
+.yobot-ui .ui-home .header, .yobot-ui .ui-auth .header, .yobot-ui .ui-account .header {
+  max-width: 1320px; margin-bottom: 28px; padding: 28px 20px;
+  border-radius: 22px;
+  background: radial-gradient(ellipse at 85% 0%, rgba(54, 176, 189, .4), transparent 55%),
+    radial-gradient(ellipse at 5% 100%, rgba(102, 89, 231, .5), transparent 60%), #182444;
+  box-shadow: 0 18px 48px rgba(28, 42, 78, .16);
+}
+.yobot-ui .header h1 { color: #fff; font-size: clamp(26px, 3vw, 38px); }
+.yobot-ui .ui-home .header::before, .yobot-ui .ui-auth .header::before,
+.yobot-ui .ui-account .header::before {
+  content: "YOBOT"; display: block; color: #a8e3ed; font-size: 12px; font-weight: 700; letter-spacing: 5px;
+}
+.yobot-ui .clanname { font-size: 32px; font-weight: 750; letter-spacing: -.8px; }
+.yobot-ui .clanname::before {
+  content: "CLAN BATTLE"; display: block; margin-bottom: 8px;
+  color: #655ac5; font-size: 11px; font-weight: 700; letter-spacing: 3px;
+}
+.yobot-ui .clancycle { background: #eeedff; color: #5146aa; border-color: #d8d4f6; }
+.yobot-ui .boss-card, .yobot-ui .mobile-boss-card {
+  border-top: 3px solid #8074e8;
+  background: linear-gradient(160deg, #fff 65%, #f2f4ff);
+  transition: border-color .25s ease, box-shadow .3s ease;
+}
+.yobot-ui .boss-card:nth-child(2) { border-top-color: #5e98db; }
+.yobot-ui .boss-card:nth-child(3) { border-top-color: #40a6ad; }
+.yobot-ui .boss-card:nth-child(4) { border-top-color: #c49253; }
+.yobot-ui .boss-card:nth-child(5) { border-top-color: #b276b6; }
+.yobot-ui .boss-card .boss-title { font-weight: 650; }
+.yobot-ui .boss-card > div:first-child img, .yobot-ui .mobile-boss-card > .el-col:first-child img {
+  border-radius: 16px; box-shadow: 0 6px 16px rgba(31, 44, 83, .16);
+}
+.yobot-ui .boss_info-single_health { transition: width .65s var(--ui-ease); }
+.yobot-ui .el-table { border-radius: 16px; font-variant-numeric: tabular-nums; }
+.yobot-ui .el-table .cell { line-height: 24px; }
+.yobot-ui .el-table__body td { transition: background-color .18s ease; }
+.yobot-ui .el-tabs__active-bar { background: #6558d9; height: 3px; border-radius: 3px; }
+.yobot-ui .el-tabs__item.is-active { color: #5146bd; font-weight: 650; }
+.yobot-ui .el-tabs__nav-wrap::after { background-color: #dce3f1; }
+.yobot-ui .ui-account #app, .yobot-ui .ui-auth #app,
+.yobot-ui .ui-admin .el-form--inline, .yobot-ui .ui-settings #app > .el-form {
+  border-top: 3px solid #8a7fed;
+  background: linear-gradient(135deg, #fff, #fbfcff);
+}
+.yobot-ui .ui-auth .el-form { margin: 0 auto; }
+.yobot-ui .Service-item, .yobot-ui .Service-item:hover {
+  border-radius: 18px; border-top: 3px solid #8074e8;
+  background: linear-gradient(160deg, #fff 55%, #f0f1fc);
+  transition: transform .3s var(--ui-ease), box-shadow .3s ease, border-color .25s ease;
+}
+.yobot-ui .Service-item .item-title { font-size: 18px; color: #273758; }
+.yobot-ui .Service-item .item-image { border-radius: 22px; background: #f0f2fc; }
+.yobot-ui .Service-item.is-disabled, .yobot-ui .Service-item.is-disabled:hover {
+  background: #f2f4f8; border-color: #dce3ed; box-shadow: none;
+}
+.yobot-ui .ui-footer { border-top-color: #d4ddeb; }
+.yobot-ui .ui-footer > a:first-child { font-weight: 750; letter-spacing: 2px; color: #5146aa; }
+@media (hover: hover) and (pointer: fine) {
+  .yobot-ui .el-button:not(.is-disabled):not(.el-button--text):not(.Service-item):hover { transform: translateY(-2px); }
+  .yobot-ui .el-button:not(.is-disabled):not(.Service-item):active { transform: translateY(0); }
+  .yobot-ui .boss-card:hover { border-color: #a59aee; box-shadow: 0 18px 40px rgba(49, 58, 117, .14); }
+  .yobot-ui .Service-item:not(.is-disabled):hover { transform: translateY(-6px); box-shadow: 0 20px 42px rgba(49, 58, 117, .15); }
+}
+@keyframes ui-surface-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) {
+  .yobot-ui .header, .yobot-ui .ui-admin #app > .el-page-header,
+  .yobot-ui .ui-chart #app > .el-page-header,
+  .yobot-ui .boss-card > div:first-child img, .yobot-ui .boss-card .boss-title,
+  .yobot-ui .mobile-boss-card > .el-col:first-child img, .yobot-ui .Service-item {
+    animation: ui-surface-in .55s ease backwards;
+  }
+  .yobot-ui .boss-card:nth-child(2) > div:first-child img, .yobot-ui .Service-item:nth-child(2) { animation-delay: .06s; }
+  .yobot-ui .boss-card:nth-child(3) > div:first-child img, .yobot-ui .Service-item:nth-child(3) { animation-delay: .12s; }
+  .yobot-ui .boss-card:nth-child(4) > div:first-child img, .yobot-ui .Service-item:nth-child(4) { animation-delay: .18s; }
+  .yobot-ui .boss-card:nth-child(5) > div:first-child img { animation-delay: .24s; }
+}
+
 @media (max-width: 1100px) {
   .yobot-ui .boss_info-all { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .yobot-ui #topToolbar { gap: 12px; }
@@ -296,6 +403,8 @@ html.yobot-ui {
   .yobot-ui #topToolbar .el-menu { flex: 0 0 100%; justify-content: space-between; margin-left: 0; }
   .yobot-ui #topToolbar .el-menu-item { padding: 0 9px; height: 52px; line-height: 52px; font-size: 13px; }
   .yobot-ui h1, .yobot-ui .clanname { font-size: 23px; }
+  .yobot-ui .ui-admin .el-page-header, .yobot-ui .ui-chart .el-page-header { padding: 18px 16px; }
+  .yobot-ui .ui-home .header, .yobot-ui .ui-auth .header, .yobot-ui .ui-account .header { padding: 20px 12px; border-radius: 18px; }
   .yobot-ui .ui-footer { margin-top: 24px; gap: 10px; }
   .yobot-ui .ui-account #app, .yobot-ui .ui-auth #app { padding: 24px 18px; }
   .yobot-ui .ui-account .account-detail { margin: 24px 0 !important; }
