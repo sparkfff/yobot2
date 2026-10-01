@@ -4,6 +4,8 @@
 
 ## 模块职责
 
+- `ybplugins/boss_data.py`：获取并校验 Boss 数据，排除训练阶段，转换正式周目范围。默认只接受当月；数据源尚未发布时，页面显示最新可用月份，需勾选“允许使用最近一期”才会采用往期数据。两服独立获取，全部失败不写配置，头像失败不影响已保存的数据。
+
 - `components/battle_service.py`：报刀、撤销、清空与切换档案。报刀先完成校验，再更新记录、血量、申请和预约。
 - `components/battle_state.py`：统一完整刀/补偿刀计算及事务边界。同步会战写操作刷新数据库状态，在同一事务中保存；异常恢复数据库和缓存；网页更新和群通知在提交后执行。
 - `components/challenge_state.py`：`ApplicationState` 与 `ChallengeState` 表达申请、补偿、预报伤害、挂树和备注，集中处理成员状态转换，保留原 JSON 字段及未知扩展字段。

@@ -87,7 +87,7 @@ class PermissionRoutesTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(self.setting['web_mode_hint'])
 
     async def test_auto_update_requires_owner_before_network_or_write(self):
-        with patch('ybplugins.settings.aiohttp.ClientSession', side_effect=AssertionError('unexpected network')):
+        with patch('ybplugins.settings.create_session', side_effect=AssertionError('unexpected network')):
             for qqid, code in [(None, 10), (10, 11), (20, 11), (30, 11)]:
                 await self.login(qqid)
                 result = await self.post('/admin/setting/auto_get_boss_data/')
