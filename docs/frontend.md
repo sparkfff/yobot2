@@ -12,7 +12,7 @@
 
 ![统计入口](ui/statistics.png)
 
-![用户管理](ui/users.png)
+![用户管理（示例数据）](ui/user-management-demo.png)
 
 ![登录页](ui/login.png)
 
