@@ -115,8 +115,13 @@ var vm = new Vue({
         this.personalProgressChart = echarts.init(document.getElementById("personalProgressChart"));
         this.personalTimeChart = echarts.init(document.getElementById("personalTimeChart"));
         this.totalDamageChart = echarts.init(document.getElementById("totalDamageChart"));
+        this._resizeListener = this.resizeAll.bind(this);
+        window.addEventListener('resize', this._resizeListener);
         this.selectingTab = "total";
         this.fetchData();
+    },
+    beforeDestroy() {
+        window.removeEventListener('resize', this._resizeListener);
     },
     watch: {
         containTailAndContinue: function() {
@@ -128,7 +133,7 @@ var vm = new Vue({
         },
         selectingTab: function() {
             this.init();
-            setTimeout("vm.resizeAll()", 100);
+            this.$nextTick(this.resizeAll);
         },
         range: function() {
             this.refreshData();
@@ -619,6 +624,8 @@ var vm = new Vue({
         },
 
         resizeAll: function() {
+            this.bossDmgChart.resize();
+            this.challengeChart.resize();
             this.sumDmgChart.resize();
             this.missChart.resize();
             this.lastChart.resize();

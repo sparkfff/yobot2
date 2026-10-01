@@ -1,10 +1,13 @@
 <!DOCTYPE html>
+<html lang="zh-CN" class="yobot-ui">
 
 <head>
+    <meta name='viewport' content='width=device-width, initial-scale=1' charset="utf-8">
     <title>yobot登录</title>
+{% include 'partials/ui_head.html' %}
 </head>
 
-<body>
+<body class="ui-auth">
     <p>正在登录中……</p>
     <script>
         var h = window.location.hash;
@@ -15,4 +18,6 @@
         }
     </script>
     <noscript>您的浏览器版本过低，请更换浏览器</noscript>
+{% include 'partials/ui_footer.html' %}
 </body>
+</html>

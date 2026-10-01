@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="yobot-ui">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,9 +8,10 @@
   <script src="/yobot-depencency/axios@0.19.2/dist/axios.min.js"></script>
   <script src="/yobot-depencency/element-ui@2.13.0/lib/index.js"></script>
   <link rel="stylesheet" href="/yobot-depencency/element-ui@2.13.0/lib/theme-chalk/index.css">
+  {% include 'partials/ui_head.html' %}
   <link rel="stylesheet" href="{{ url_for('yobot_static', filename='clan/statistics/performance.css') }}">
 </head>
-<body>
+<body class="ui-performance">
 <div id="app" v-cloak>
   <header><a href="../">← 返回统计</a><span>YOBOT · 公会业绩</span></header>
   <div class="heading"><div><h1>[[ groupName || '公会' ]] · 业绩表</h1><p>沿用群内业绩规则，按阶段与单刀权重计算。</p></div>
@@ -66,5 +67,6 @@
 </div>
 <script>var performanceCsrf = {{ session['csrf_token'] | tojson }};</script>
 <script src="{{ url_for('yobot_static', filename='clan/statistics/performance.js') }}"></script>
+{% include 'partials/ui_footer.html' %}
 </body>
 </html>
