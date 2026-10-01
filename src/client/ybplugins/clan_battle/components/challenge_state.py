@@ -15,11 +15,12 @@ class ApplicationState:
     damage: Optional[int] = 0
     tree: bool = False
     msg: Optional[str] = None
+    damage_message: Optional[str] = None
     extra: Dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
     def from_dict(cls, data):
-        known = {'is_continue', 'behalf', 's', 'damage', 'tree', 'msg'}
+        known = {'is_continue', 'behalf', 's', 'damage', 'tree', 'msg', 'damage_message'}
         values = {key: deepcopy(value) for key, value in data.items() if key in known}
         values['extra'] = {key: deepcopy(value) for key, value in data.items() if key not in known}
         return cls(**values)
@@ -28,6 +29,8 @@ class ApplicationState:
         result = deepcopy(self.extra)
         result.update(is_continue=self.is_continue, behalf=self.behalf, s=self.s,
                       damage=self.damage, tree=self.tree, msg=self.msg)
+        if self.damage_message:
+            result['damage_message'] = self.damage_message
         return result
 
 
@@ -100,7 +103,8 @@ class ChallengeState:
         info.tree, info.msg = False, None
         return info
 
-    def report_damage(self, qqid: Identifier, s, damage) -> ApplicationState:
+    def report_damage(self, qqid: Identifier, s, damage, message=None) -> ApplicationState:
         info = self._require_member(qqid)
         info.s, info.damage = s, damage
+        info.damage_message = message.strip() or None if message else None
         return info

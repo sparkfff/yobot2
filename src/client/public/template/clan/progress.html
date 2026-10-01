@@ -13,6 +13,21 @@
 	<link rel="stylesheet" href="/yobot-depencency/yocool@final/princessadventure/style.css">
 
 	<style>
+		.tail-record-dialog.el-dialog__wrapper .el-dialog {
+			width: calc(100vw - 32px);
+			max-width: 960px;
+		}
+		.tail-record-dialog.el-dialog__wrapper .el-dialog__body {
+			padding: 20px 12px;
+		}
+		.tail-record-dialog .el-table {
+			width: 100%;
+		}
+		.tail-record-dialog .el-table .cell {
+			padding-left: 4px;
+			padding-right: 4px;
+			word-break: break-word;
+		}
 		.el-table td,
 		.el-table th {
 			text-align: center;
@@ -114,6 +129,7 @@
 		</el-dialog>
 		<template v-if="progressData.length > 0">
 			<el-button class="progress-btn" type="primary" @click="viewTails">尾刀一览</el-button>
+			<el-checkbox v-model="onlyUnfinished" style="margin:0 12px">仅显示未完成</el-checkbox>
 			<el-row class='el-table' style="margin: auto;padding-bottom: 2%;">
 				<el-col style="display: flex; justify-content: space-between; margin-bottom: 5px;">
 					<div>
@@ -131,16 +147,28 @@
 						:show-text="false" :stroke-width="16"></el-progress>
 				</el-col>
 			</el-row>
-			<el-dialog title="未完成的尾刀一览" :visible.sync="tailsDataVisible">
+			<el-dialog class="tail-record-dialog" title="未完成的尾刀一览" :visible.sync="tailsDataVisible">
 				<template v-if="tailsData.length > 0">
 					<el-table :data="tailsData">
-						<el-table-column prop="qqid" label="QQ号" width="120" sortable></el-table-column>
-						<el-table-column prop="nickname" label="昵称" width="200" sortable></el-table-column>
-						<el-table-column prop="boss" label="boss" width="80"></el-table-column>
-						<el-table-column prop="damage" label="尾刀伤害" width="120" sortable>
+						<el-table-column prop="qqid" label="QQ号" min-width="40" sortable></el-table-column>
+						<el-table-column prop="nickname" label="昵称" min-width="70" sortable></el-table-column>
+						<el-table-column prop="boss" label="boss" min-width="36"></el-table-column>
+						<el-table-column prop="damage" label="尾刀伤害" min-width="74" sortable>
 							<template slot-scope="scope">[[ scope.row.damage.toLocaleString() ]]</template>
 						</el-table-column>
-						<el-table-column prop="message" label="留言"></el-table-column>
+						<el-table-column prop="return_seconds" label="返秒" min-width="110">
+							<template slot-scope="scope">
+								<template v-if="scope.row.editing">
+									<el-input-number v-model="scope.row.edit_seconds" :min="21" :max="90" :precision="0" :controls="false" size="mini" style="width:70px" :disabled="scope.row.saving"></el-input-number>
+									<el-button type="text" :loading="scope.row.saving" @click="saveTailSeconds(scope.row)">保存</el-button>
+									<el-button type="text" :disabled="scope.row.saving" @click="scope.row.editing=false">取消</el-button>
+								</template>
+								<template v-else>
+									[[ returnSeconds(scope.row.return_seconds) ]]
+									<el-button v-if="scope.row.can_edit_return_seconds" type="text" size="mini" @click="editTailSeconds(scope.row)">修改</el-button>
+								</template>
+							</template>
+						</el-table-column>
 					</el-table>
 				</template>
 				<template v-else>
@@ -149,7 +177,7 @@
 			</el-dialog>
 
 			<!-- 这里有个是否是手机的判断 -->
-			<el-table width="100%" v-if="isMobile" :data="progressData" :span-method="arraySpanMethod"
+			<el-table width="100%" v-if="isMobile" :data="visibleProgressData" :empty-text="onlyUnfinished ? '没有未完成的成员' : '暂无数据'" :span-method="arraySpanMethod"
 				ref="multipleTable" @selection-change="handleSelectionChange" stripe :row-class-name="getRowClass"
 				@cell-click="clickCell">
 				<el-table-column type="selection" width="70"></el-table-column>
@@ -255,7 +283,7 @@
 			</el-table>
 			
 			<div v-else class="pc-box">
-				<el-table width="100%" :data="progressData" :span-method="arraySpanMethod" ref="multipleTable"
+				<el-table width="100%" :data="visibleProgressData" :empty-text="onlyUnfinished ? '没有未完成的成员' : '暂无数据'" :span-method="arraySpanMethod" ref="multipleTable"
 					@selection-change="handleSelectionChange" stripe :row-class-name="getRowClass" size="medium">
 					<el-table-column prop="sl" label="SL" width="75" sortable>
 						<template slot-scope="scope">

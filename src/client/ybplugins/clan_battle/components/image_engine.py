@@ -210,12 +210,23 @@ def user_chips(head_icon: Image.Image, user_name: str, background_color: Tuple[i
 
     text_color = (255, 255, 255) if ((background_color[0] * 0.299 + background_color[1] * 0.587 + background_color[2] * 0.114) / 255) < 0.5 else (0, 0, 0)
 
-    user_name_image = get_font_image(user_name, USER_NICKNAME_FONTSIZE, text_color)
+    # Preserve report notes instead of clipping the text at the chip boundary.
+    text_font = ImageFont.truetype(FONTS, USER_NICKNAME_FONTSIZE)
+    lines = []
+    for paragraph in user_name.split('\n'):
+        line = ''
+        for character in paragraph:
+            bounds = text_font.getbbox(line + character)
+            if line and bounds[2] - bounds[0] > TEXT_MAXIMUM_WIDTH:
+                lines.append(line)
+                line = character
+            else:
+                line += character
+        lines.append(line)
+    user_name_image = get_font_image('\n'.join(lines), USER_NICKNAME_FONTSIZE, text_color)
+    chips_height = max(CHIPS_HEIGHT, user_name_image.height)
 
-    if user_name_image.width > TEXT_MAXIMUM_WIDTH:
-        user_name_image = user_name_image.crop((0, 0, TEXT_MAXIMUM_WIDTH, CHIPS_HEIGHT))
-
-    background = BackGroundGenerator(color=background_color, padding=(5, 5, 5, 5), override_size=(None, CHIPS_HEIGHT))
+    background = BackGroundGenerator(color=background_color, padding=(5, 5, 5, 5), override_size=(None, chips_height))
     background.alpha_composite(head_icon, (0, 0))
     if user_name_image.getbbox() is not None:
         background.alpha_composite(user_name_image, (25, background.center(user_name_image)[1]))
@@ -342,7 +353,7 @@ def chips_list(chips_array: Dict[str, Any] = {}, text: str = "内容", backgroun
         for this_chip_image_seek in this_chips_line_seeks:
             chips_background.alpha_composite(chips_image_list[this_chip_image_seek], (this_width, this_height))
             this_width += chips_image_list[this_chip_image_seek].width + CHIPS_INTERVAL
-        this_height += 30 + CHIPS_INTERVAL
+        this_height += max(chips_image_list[seek].height for seek in this_chips_line_seeks) + CHIPS_INTERVAL
         this_width = 0
 
     background = BackGroundGenerator(color=background_color, padding=(5, 5, 5, 5), override_size=(OVERALL_CHIPS_LIST_WITH, None))
