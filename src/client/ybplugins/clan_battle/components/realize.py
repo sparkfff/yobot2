@@ -1205,6 +1205,8 @@ def get_report(self,
 		*expressions
 	).order_by(Clan_challenge.cid):
 		report.append({
+			'record_id': c.cid,
+			'recorded_return_seconds': c.return_seconds,
 			'battle_id': c.bid,
 			'qqid': c.qqid,
 			'challenge_time': pcr_timestamp(

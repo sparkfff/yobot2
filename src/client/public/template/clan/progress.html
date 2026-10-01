@@ -145,8 +145,18 @@
 						<el-table-column prop="damage" label="尾刀伤害" width="120" sortable>
 							<template slot-scope="scope">[[ scope.row.damage.toLocaleString() ]]</template>
 						</el-table-column>
-						<el-table-column prop="return_seconds" label="返秒">
-							<template slot-scope="scope">[[ returnSeconds(scope.row.return_seconds) ]]</template>
+						<el-table-column prop="return_seconds" label="返秒" min-width="210">
+							<template slot-scope="scope">
+								<template v-if="scope.row.editing">
+									<el-input-number v-model="scope.row.edit_seconds" :min="0" :max="90" :precision="0" :controls="false" size="mini" style="width:70px" :disabled="scope.row.saving"></el-input-number>
+									<el-button type="text" :loading="scope.row.saving" @click="saveTailSeconds(scope.row)">保存</el-button>
+									<el-button type="text" :disabled="scope.row.saving" @click="scope.row.editing=false">取消</el-button>
+								</template>
+								<template v-else>
+									[[ returnSeconds(scope.row.return_seconds) ]]
+									<el-button v-if="scope.row.can_edit_return_seconds" type="text" size="mini" @click="editTailSeconds(scope.row)">修改</el-button>
+								</template>
+							</template>
 						</el-table-column>
 					</el-table>
 				</template>

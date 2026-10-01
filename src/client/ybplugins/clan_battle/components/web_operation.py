@@ -7,7 +7,7 @@ from quart import Quart, jsonify, make_response, redirect, request, session, url
 
 from ...permissions import can_manage_clan, can_view_clan
 from ...templating import render_template
-from ...ybdata import Clan_group, Clan_member, User
+from ...ybdata import Clan_challenge, Clan_group, Clan_member, User
 from ..exception import ClanBattleError
 from ..util import pcr_datetime, atqq
 from .realize import send_group_notification
@@ -189,18 +189,78 @@ def register_routes(self, app: Quart):
 					None,
 					None,
 					pcr_datetime(group.game_server, payload['ts'])[0],
+					nocache=True,
 				)
+				pending = {}
+				for record in report:
+					queue = pending.setdefault(record['qqid'], [])
+					if record['is_continue']:
+						if queue: queue.pop(0)
+					elif record['health_remain'] == 0:
+						queue.append(record['record_id'])
+				pending_ids = {cid for queue in pending.values() for cid in queue}
+				is_admin = user_id != 0 and can_manage_clan(user, is_member)
+				report = [dict(record, can_edit_return_seconds=(
+					user_id != 0 and record['record_id'] in pending_ids and
+					(is_admin or record['qqid'] == user_id))) for record in report]
 				return jsonify(
 					code=0,
 					challenges=report,
 					today=d,
 				)
+			elif action == 'set_return_seconds':
+				cid = payload.get('record_id')
+				seconds = payload.get('return_seconds')
+				if isinstance(cid, bool) or not isinstance(cid, int) or cid <= 0:
+					return jsonify(code=30, message='记录编号必须是正整数')
+				if isinstance(seconds, bool) or not isinstance(seconds, int) or not 0 <= seconds <= 90:
+					return jsonify(code=30, message='返秒必须是0至90的整数秒数')
+				with Clan_challenge._meta.database.atomic():
+					current_group = Clan_group.get_by_id(group_id)
+					actor = User.get_or_none(qqid=user_id)
+					membership = Clan_member.get_or_none(group_id=group_id, qqid=user_id)
+					if not can_view_clan(actor, membership):
+						return jsonify(code=11, message='无权修改本公会返秒')
+					record = Clan_challenge.get_or_none(
+						Clan_challenge.cid == cid, Clan_challenge.gid == group_id,
+						Clan_challenge.bid == current_group.battle_id)
+					if record is None or record.boss_health_remain != 0 or record.is_continue:
+						return jsonify(code=30, message='尾刀记录不存在或已失效，请刷新')
+					if record.qqid != user_id and not can_manage_clan(actor, membership):
+						return jsonify(code=11, message='仅可修改自己的返秒')
+					pending = []
+					for candidate in Clan_challenge.select().where(
+						Clan_challenge.gid == group_id, Clan_challenge.bid == current_group.battle_id,
+						Clan_challenge.qqid == record.qqid,
+						Clan_challenge.challenge_pcrdate == record.challenge_pcrdate
+					).order_by(Clan_challenge.cid):
+						if candidate.is_continue:
+							if pending: pending.pop(0)
+						elif candidate.boss_health_remain == 0:
+							pending.append(candidate.cid)
+					if cid not in pending:
+						return jsonify(code=30, message='补偿刀已使用，请刷新')
+					if 'expected_return_seconds' in payload:
+						expected = payload['expected_return_seconds']
+						if expected is not None and (isinstance(expected, bool) or not isinstance(expected, int)):
+							return jsonify(code=30, message='原返秒格式错误')
+						if expected != record.return_seconds:
+							return jsonify(code=30, message='返秒已被修改，请刷新后重试')
+					updated = Clan_challenge.update(return_seconds=seconds).where(
+						Clan_challenge.cid == cid,
+						Clan_challenge.return_seconds == record.return_seconds).execute()
+					if updated != 1:
+						return jsonify(code=30, message='记录已改变，请刷新后重试')
+				self.get_report(group_id, None, None, record.challenge_pcrdate, nocache=True)
+				return jsonify(code=0, record_id=cid, return_seconds=seconds,
+					recorded_return_seconds=seconds)
 			elif action == 'get_user_challenge':
 				report = self.get_report(
 					group_id,
 					None,
 					payload['qqid'],
 					None,
+					nocache=True,
 				)
 				try:
 					visited_user = User.get_by_id(payload['qqid'])

@@ -189,16 +189,63 @@ var vm = new Vue({
                     if (id%2 == 0 && m.detail[id] && m.detail[id].health_remain == 0 && !m.detail[id].is_continue && !m.detail[id+1]) {
                         let c = m.detail[id];
                         this.tailsData.push({
+                            record_id: c.record_id,
                             qqid: m.qqid,
                             nickname: m.nickname,
                             boss: c.cycle + '-' + c.boss_num,
                             damage: c.damage,
                             return_seconds: c.return_seconds,
+                            recorded_return_seconds: c.recorded_return_seconds,
+                            can_edit_return_seconds: !!c.can_edit_return_seconds,
+                            editing: false,
+                            saving: false,
+                            edit_seconds: c.return_seconds,
                         });
                     }
                 }
             }
             this.tailsDataVisible = true;
+        },
+        editTailSeconds: function (row) {
+            row.edit_seconds = row.return_seconds;
+            row.editing = true;
+        },
+        saveTailSeconds: function (row) {
+            if (row.saving) return;
+            if (!Number.isInteger(row.edit_seconds) || row.edit_seconds < 0 || row.edit_seconds > 90) {
+                this.$message.error('请输入0至90的整数秒数');
+                return;
+            }
+            row.saving = true;
+            var thisvue = this;
+            axios.post('../api/', {
+                action: 'set_return_seconds',
+                csrf_token: csrf_token,
+                record_id: row.record_id,
+                return_seconds: row.edit_seconds,
+                expected_return_seconds: row.recorded_return_seconds == null ? null : row.recorded_return_seconds,
+            }).then(function (res) {
+                if (res.data.code !== 0) {
+                    thisvue.$alert(res.data.message, '保存失败');
+                    return;
+                }
+                row.return_seconds = res.data.return_seconds;
+                row.recorded_return_seconds = res.data.recorded_return_seconds;
+                row.editing = false;
+                for (const member of thisvue.progressData) {
+                    for (const record of member.detail || []) {
+                        if (record && record.record_id === row.record_id) {
+                            thisvue.$set(record, 'return_seconds', row.return_seconds);
+                            thisvue.$set(record, 'recorded_return_seconds', row.recorded_return_seconds);
+                        }
+                    }
+                }
+                thisvue.$message.success('返秒已保存');
+            }).catch(function () {
+                thisvue.$alert('网络错误，请重试', '保存失败');
+            }).finally(function () {
+                row.saving = false;
+            });
         },
         update_member_info: function (m) {
             if (m.qqid == -1) {

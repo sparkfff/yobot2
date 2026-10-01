@@ -82,6 +82,58 @@ class ReturnSecondsDisplayTests(unittest.IsolatedAsyncioTestCase):
 
 
 class ReturnSecondsFrontendTests(unittest.TestCase):
+    def test_tail_editor_saves_unknown_seconds_and_preserves_failed_edits(self):
+        node = shutil.which('node')
+        if not node:
+            self.skipTest('Node is unavailable')
+        script = Path(__file__).resolve().parents[1] / 'src/client/public/static/clan/progress.js'
+        code = r'''
+const fs = require('fs'), vm = require('vm'), assert = require('assert');
+let options, sent, fail = false;
+vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), {
+    Vue: function (config) { options = config; }, Object, Number, csrf_token: 'csrf',
+    axios: {post: async (url, payload) => {
+        sent = payload;
+        return {data: fail ? {code: 10, message: 'conflict'} :
+            {code: 0, return_seconds: payload.return_seconds, recorded_return_seconds: payload.return_seconds}};
+    }},
+});
+const app = Object.assign({}, options.data, options.methods, {
+    $message: {error() {}, success() {}}, $alert() {}, $set: (obj, key, val) => obj[key] = val,
+});
+const record = {record_id: 7, return_seconds: null, recorded_return_seconds: null};
+app.progressData = [{detail: [record]}];
+const row = {record_id: 7, return_seconds: null, recorded_return_seconds: null, saving: false};
+const tick = () => new Promise(resolve => setImmediate(resolve));
+(async () => {
+    app.editTailSeconds(row);
+    row.edit_seconds = null;
+    app.saveTailSeconds(row);
+    assert.strictEqual(sent, undefined);
+    row.edit_seconds = 0;
+    app.saveTailSeconds(row);
+    await tick();
+    assert.strictEqual(sent.record_id, 7);
+    assert.strictEqual(sent.expected_return_seconds, null);
+    assert.strictEqual(record.return_seconds, 0);
+    assert.strictEqual(record.recorded_return_seconds, 0);
+    assert.strictEqual(row.saving, false);
+    assert.strictEqual(row.editing, false);
+    fail = true;
+    app.editTailSeconds(row);
+    row.edit_seconds = 41;
+    app.saveTailSeconds(row);
+    await tick();
+    assert.strictEqual(sent.expected_return_seconds, 0);
+    assert.strictEqual(row.return_seconds, 0);
+    assert.strictEqual(record.return_seconds, 0);
+    assert.strictEqual(row.editing, true);
+    assert.strictEqual(row.saving, false);
+})().catch(error => { console.error(error); process.exit(1); });
+'''
+        result = subprocess.run([node, '-e', code, str(script)], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_pending_tail_table_and_tooltips(self):
         node = shutil.which('node')
         if not node:
