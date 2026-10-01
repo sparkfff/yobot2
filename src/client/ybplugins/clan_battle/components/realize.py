@@ -7,6 +7,8 @@ import base64
 import random
 import string
 import asyncio
+from collections import Counter
+from .tail_return_seconds import effective_return_seconds
 import logging
 from pathlib import Path
 from io import BytesIO
@@ -1020,7 +1022,8 @@ def challenger_info(self, group_id):
 	for c in challenges:
 		#如果出完这刀时boss的血量为0，且不是收尾刀
 		if c.boss_health_remain == 0 and not c.is_continue:
-			end_blade_qqid.setdefault(c.qqid, []).append(c.return_seconds)
+			seconds = effective_return_seconds(self, c.boss_cycle, group.game_server, c.return_seconds)
+			end_blade_qqid.setdefault(c.qqid, []).append(seconds)
 		if c.is_continue and c.qqid in end_blade_qqid:
 			end_blade_qqid[c.qqid].pop(0)
 			if not end_blade_qqid[c.qqid]: del end_blade_qqid[c.qqid]
@@ -1029,7 +1032,8 @@ def challenger_info(self, group_id):
 
 	half_challenge_list:Dict[str, Any] = {"style-background-color": (240,240,240)}
 	for qqid, seconds in end_blade_qqid.items():
-		return_times = ' / '.join(f'{s}s' if s is not None else '未记录' for s in seconds)
+		return_times = ' / '.join((f'{s}s' if s is not None else '?s') +
+			(f' ×{count}' if count > 1 else '') for s, count in Counter(seconds).items())
 		half_challenge_list[str(qqid)] = f'{self._get_nickname_by_qqid(qqid)[:4]} {return_times}'
 
 	challenging_list = safe_load_json(group.challenging_member_list)
@@ -1095,7 +1099,7 @@ def challenger_info(self, group_id):
 			),
 			GroupStateBlock(
 				title_text="阶段",
-				data_text=chr(65+level_cycle),
+				data_text=chr(66+level_cycle),
 				title_color=(255, 255, 255),
 				data_color=(255, 255, 255),
 				background_color=_bg_color,
@@ -1216,7 +1220,8 @@ def get_report(self,
 			'damage': c.challenge_damage,
 			'is_continue': c.is_continue,
 			'message': c.message,
-			'return_seconds': c.return_seconds,
+			'return_seconds': effective_return_seconds(self, c.boss_cycle, group.game_server, c.return_seconds)
+				if c.boss_health_remain == 0 else None,
 			'behalf': c.behalf,
 		})
 	return report

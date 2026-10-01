@@ -109,7 +109,7 @@ var vm = new Vue({
             return detailstr;
         },
         returnSeconds: function (seconds) {
-            return seconds == null ? '未记录' : seconds + 's';
+            return seconds == null ? '?s' : seconds + 's';
         },
         arraySpanMethod: function ({ row, column, rowIndex, columnIndex }) {
             if (columnIndex >= 4) {

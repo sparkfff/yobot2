@@ -18,6 +18,7 @@ from .challenge_state import ChallengeState
 from .report_undo import BattleSnapshot, reverse_report
 from .battle_state import after_commit, atomic_battle_operation, count_blades, validate_battle_id, validate_boss_number
 from .performance import forget_weights
+from .tail_return_seconds import effective_return_seconds
 from .realize import get_clan_group, safe_load_json, future_operation, check_next_boss, subscribe_remind, send_group_notification
 
 _logger = logging.getLogger(__name__)
@@ -221,6 +222,8 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
 
     # All rejection paths above leave the database and application state intact.
     challenge_damage = target_health[boss_num] if defeat else damage
+    if defeat:
+        return_seconds = effective_return_seconds(self, boss_cycle, group.game_server, return_seconds)
     target_health[boss_num] -= challenge_damage
     health_remaining = target_health[boss_num]
     report = Clan_challenge.create(

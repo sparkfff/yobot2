@@ -71,5 +71,15 @@ class TailSecondsTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_old_tail_without_seconds_still_works(self):
         self.command('尾刀 1')
-        self.assertIsNone(Clan_challenge.get().return_seconds)
+        self.assertEqual(Clan_challenge.get().return_seconds, 90)
 
+    async def test_omitted_seconds_saved_by_original_stage(self):
+        from ybplugins.ybdata import Clan_group
+        self.battle.level_by_cycle = {'cn': [[1, 3], [4, 6], [7, 999]]}
+        self.battle.bossinfo['cn'].append([300] * 5)
+        for cycle, seconds in [(4, 90), (7, None)]:
+            with self.subTest(cycle=cycle):
+                Clan_group.update(boss_cycle=cycle).where(Clan_group.group_id == 100).execute()
+                self.command('尾刀 1')
+                self.assertEqual(Clan_challenge.select().order_by(Clan_challenge.cid.desc()).get().return_seconds, seconds)
+                self.battle.undo(100, 10)
