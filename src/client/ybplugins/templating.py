@@ -1,4 +1,7 @@
 import os
+import hashlib
+from functools import lru_cache
+from pathlib import Path
 
 import jinja2
 from quart import session, url_for 
@@ -11,9 +14,27 @@ template_folder = os.path.abspath(os.path.join(
 Ver = 'unknown'
 
 
+@lru_cache(maxsize=128)
+def _asset_digest(path, modified_ns, size):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
+
+
+def _static_version(filename):
+    """Invalidate browser caches when assets change within the same release."""
+    try:
+        root = Path(static_folder).resolve()
+        path = (root / filename).resolve()
+        path.relative_to(root)
+        stat = path.stat()
+        digest = _asset_digest(str(path), stat.st_mtime_ns, stat.st_size)
+        return f'{Ver}-{digest}'
+    except (OSError, ValueError, TypeError):
+        return Ver
+
+
 def _vertioned_url_for(endpoint, *args, **kwargs):
     if endpoint == 'yobot_static':
-        kwargs['v'] = Ver
+        kwargs['v'] = _static_version(kwargs.get('filename'))
     return url_for(endpoint, *args, **kwargs)
 
 
