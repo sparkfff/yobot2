@@ -143,24 +143,24 @@
 								<span class="item-link">立即查看</span>
 							</el-button>
 						</div>
-						<a class="lib" href="#" target="_blank" id="clan-battle-analyzer">
-								<el-button class="Service-item">
+						<div class="lib">
+								<el-button class="Service-item" disabled>
 									<div class="item-image">
 										<img src="/yobot-depencency/yocool@final/princessadventure/karyl_q.png">
 									</div>
 									<h3 class="item-title">均值偏差</h3>
-									<div class="item-text">公会战偏差值计算</div>
-									<span class="item-link">立即查看</span>
-								</el-button></a>
-						<a class="lib" href="#" target="_blank" id="pcrd-yobot-fe">
-								<el-button class="Service-item">
+									<div class="item-text">外部服务已停用</div>
+									<span class="item-link">暂不可用</span>
+								</el-button></div>
+						<div class="lib">
+								<el-button class="Service-item" disabled>
 									<div class="item-image">
 										<img src="/yobot-depencency/yocool@final/princessadventure/yui_q.png">
 									</div>
 									<h3 class="item-title">多维分析</h3>
-									<div class="item-text">会战成员数据分析</div>
-									<span class="item-link">立即查看</span>
-								</el-button></a>
+									<div class="item-text">外部服务已停用</div>
+									<span class="item-link">暂不可用</span>
+								</el-button></div>
 					</el-row>
 			</div>
 		</div>
@@ -185,19 +185,19 @@
 </body>
 
 <script src="{{ url_for('yobot_static', filename='clan/statistics.js') }}"></script>
+{% if allow_api %}
 <script>
-	var apikey = "{{ apikey }}";
-	var apiurl = window.location.href + "api/?apikey=" + apikey
-	document.getElementById("apiurl").value = apiurl;
-	document.getElementById("pcrd-yobot-fe").href = "http://tools.yobot.win/pcrd-yobot-fe/#" + encodeURIComponent(apiurl);
-	document.getElementById("clan-battle-analyzer").href = "http://clan-battle-analyzer.pcrbot.com/?apiURL=" +
-		encodeURIComponent(apiurl);
-	document.getElementById("copy").addEventListener("click", e => {
-		document.getElementById("apiurl").select();
-		document.execCommand("Copy");
-		alert("API已复制到剪贴板");
-	})
+    const apiurl = new URL('api/', window.location.href);
+    apiurl.searchParams.set('apikey', {{ apikey | tojson }});
+    const apiInput = document.getElementById('apiurl');
+    apiInput.value = apiurl.href;
+    document.getElementById('copy').addEventListener('click', () => {
+        apiInput.select();
+        document.execCommand('Copy');
+        alert('API已复制到剪贴板');
+    });
 </script>
+{% endif %}
 
 </html>
 <!--
