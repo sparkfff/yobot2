@@ -40,28 +40,28 @@
             </el-form-item>
         </el-form>
         <el-table :data="userData" style="width: 100%" v-loading="isLoading" stripe>
-            <el-table-column label="详情页" width="30">
+            <el-table-column label="详情页" width="80" align="center">
                 <template slot-scope="scope">
                     <a :href="'../../user/' + scope.row.qqid + '/'"><i class="el-icon-user"></i></a>
                 </template>
             </el-table-column>
-            <el-table-column prop="nickname" label="昵称" width="200" sortable></el-table-column>
-            <el-table-column prop="qqid" label="QQ号" width="120" sortable></el-table-column>
-            <el-table-column prop="clan_group_id" label="公会战群号" width="120" sortable></el-table-column>
-            <el-table-column prop="authority_group" label="用户组" width="150" sortable>
+            <el-table-column prop="nickname" label="昵称" min-width="200" sortable></el-table-column>
+            <el-table-column prop="qqid" label="QQ号" min-width="120" sortable></el-table-column>
+            <el-table-column prop="clan_group_id" label="公会战群号" min-width="120" sortable></el-table-column>
+            <el-table-column prop="authority_group" label="用户组" min-width="150" sortable>
                 <template slot-scope="scope">
                     <el-select v-model="scope.row.authority_group" @change="modify(scope)" size="mini">
                         <el-option v-for="item in authtype" :key="item.value" :label="item.label" :value="item.value"></el-option>
                     </el-select>
                 </template>
             </el-table-column>
-            <el-table-column prop="last_login_time" label="上次登录时间" width="200" sortable>
+            <el-table-column prop="last_login_time" label="上次登录时间" min-width="200" sortable>
                 <template slot-scope="scope">
                     [[ datestr(scope.row.last_login_time) ]]
                 </template>
             </el-table-column>
-            <el-table-column prop="last_login_ipaddr" label="上次登录IP地址" width="150"></el-table-column>
-            <el-table-column label="删除" width="30">
+            <el-table-column prop="last_login_ipaddr" label="上次登录IP地址" min-width="150"></el-table-column>
+            <el-table-column label="删除" width="72" align="center">
                 <template slot-scope="scope">
                         <el-button type="text" @click="delete_user(scope)" icon="el-icon-delete"></el-button>
                 </template>

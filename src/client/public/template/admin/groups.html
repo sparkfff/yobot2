@@ -15,15 +15,15 @@
     <div id="app">
         <el-page-header @back="location='..'" content="yobot公会管理"></el-page-header>
         <el-table :data="groupData" style="width: 100%" stripe>
-            <el-table-column prop="group_id" label="群号" width="100" sortable></el-table-column>
-            <el-table-column prop="group_name" label="群名称" width="150" sortable></el-table-column>
-            <el-table-column prop="game_server" label="游戏区" width="100" sortable></el-table-column>
-            <el-table-column label="详情页" width="30">
+            <el-table-column prop="group_id" label="群号" min-width="100" sortable></el-table-column>
+            <el-table-column prop="group_name" label="群名称" min-width="150" sortable></el-table-column>
+            <el-table-column prop="game_server" label="游戏区" min-width="100" sortable></el-table-column>
+            <el-table-column label="详情页" width="80" align="center">
                 <template slot-scope="scope">
                     <a :href="'../../clan/' + scope.row.group_id + '/'"><i class="el-icon-more-outline"></i></a>
                 </template>
             </el-table-column>
-            <el-table-column label="删除" width="30">
+            <el-table-column label="删除" width="72" align="center">
                 <template slot-scope="scope">
                     <el-button type="text" @click="delete_group(scope)" icon="el-icon-delete"></el-button>
                 </template>
