@@ -122,6 +122,36 @@ class PerformanceTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(performance.PerformanceError, '1 位小数'):
             self.save(data)
 
+    def test_group_command_renders_new_ranking_png_and_archive_month(self):
+        import base64
+        from datetime import datetime, timezone
+        from io import BytesIO
+        from PIL import Image
+        from ybplugins.clan_battle.components.score import (
+            performance_title, performance_cells, score_table)
+        self.battle.level_by_cycle['cn'] = [[1, 3], [4, 9], [10, 999]]
+        Clan_group.update(group_name='星光骑士团').where(Clan_group.group_id == 100).execute()
+        self.battle.group_data_list.clear()
+        day = int(datetime(2025, 9, 28, tzinfo=timezone.utc).timestamp() // 86400)
+        self.record(challenge_pcrdate=day, boss_cycle=1)
+        self.record(challenge_pcrdate=day + 1, boss_cycle=4)
+        data = self.report()
+        data['config']['stages'][1]['weight'] = '1.5'
+        self.save(data)
+        data = self.report()
+        title = performance_title(self.group(), data)
+        self.assertEqual(title, self.group().group_name + '-2025年09月-公会战业绩表')
+        headers, rows, _ = performance_cells(data)
+        self.assertEqual(headers[2:], ['总刀数', 'B阶段', 'C阶段', 'D阶段',
+                                      'B得分', 'C得分', 'D得分', '总业绩分'])
+        self.assertEqual(rows[0][2:], ['2', '1', '1', '0', '1', '1.5', '0', '2.5'])
+        message = score_table(self.battle, 100)
+        self.assertTrue(message.startswith('[CQ:image,file=base64://'))
+        image = Image.open(BytesIO(base64.b64decode(message.split('base64://', 1)[1][:-1])))
+        self.assertEqual(image.format, 'PNG')
+        self.assertGreater(image.width, 1000)
+        self.assertGreater(image.height, 150)
+
     def test_invalid_weights_and_ranges_do_not_replace_file(self):
         record = self.record()
         data = self.report()
