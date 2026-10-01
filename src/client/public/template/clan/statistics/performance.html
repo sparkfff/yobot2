@@ -33,15 +33,15 @@
       </el-table>
       <div v-if="canEdit" class="actions"><el-button size="small" @click="addStage">添加阶段</el-button><el-button size="small" @click="removeStage" :disabled="config.stages.length === 1">删除末阶段</el-button><el-button size="small" @click="resetWeights">权重恢复为 1</el-button></div>
     </section>
-    <section v-loading="saving || loading"><div class="section-heading"><div><h2>成员业绩</h2><p>1 周目起为 B 阶段，依次为 C、D。阶段列为报刀数，包含尾刀和补偿刀。</p></div><el-button size="small" @click="exportCsv" :disabled="!!validationError">导出 CSV</el-button></div>
+    <section v-loading="saving || loading"><div class="section-heading"><h2>成员业绩</h2><el-button size="small" @click="exportCsv" :disabled="!!validationError">导出 CSV</el-button></div>
       <el-alert v-if="validationError" :title="validationError" type="error" :closable="false"></el-alert>
-      <el-table :data="ranking" stripe>
-        <el-table-column type="index" label="排名" width="70"></el-table-column>
+      <el-table :data="ranking" class="performance-ranking">
+        <el-table-column type="index" label="排名" width="70" align="center"></el-table-column>
         <el-table-column prop="nickname" label="成员" min-width="150"></el-table-column>
-        <el-table-column prop="total_blades" label="总刀数" width="90"></el-table-column>
-        <el-table-column v-for="(label, index) in stageLabels" :key="'count-' + label" :label="label + '阶段'" width="90"><template slot-scope="scope">[[ scope.row.stage_blades[index] ]]</template></el-table-column>
-        <el-table-column v-for="(label, index) in stageLabels" :key="'score-' + label" :label="label + '得分'" min-width="100"><template slot-scope="scope">[[ number(scope.row.stage_scores[index]) ]]</template></el-table-column>
-        <el-table-column label="总业绩分" min-width="125" prop="score" sortable><template slot-scope="scope"><strong>[[ number(scope.row.score) ]]</strong></template></el-table-column>
+        <el-table-column prop="total_blades" label="总刀数" min-width="100" align="center" class-name="total-count"></el-table-column>
+        <el-table-column v-for="(label, index) in stageLabels" :key="'count-' + label" :label="label + '阶段'" min-width="100" align="center" :class-name="'stage-tone-' + (index % 3)"><template slot-scope="scope">[[ scope.row.stage_blades[index] ]]</template></el-table-column>
+        <el-table-column v-for="(label, index) in stageLabels" :key="'score-' + label" :label="label + '得分'" min-width="100" align="center" :class-name="'stage-tone-' + (index % 3)"><template slot-scope="scope">[[ number(scope.row.stage_scores[index]) ]]</template></el-table-column>
+        <el-table-column label="总业绩分" min-width="125" prop="score" sortable align="center" class-name="total-score"><template slot-scope="scope"><strong>[[ number(scope.row.score) ]]</strong></template></el-table-column>
       </el-table>
     </section>
     <section v-loading="saving || loading"><div class="section-heading"><h2>单刀明细 · [[ records.length ]] 条</h2><el-input v-model="search" placeholder="搜索成员、归属人或记录编号" clearable class="search"></el-input></div>

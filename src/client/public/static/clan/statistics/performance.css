@@ -17,3 +17,11 @@ p { color: #63748d; } section { padding: 24px; background: white; border: 1px so
 .el-message-box { max-width: calc(100vw - 28px); }
 :focus-visible { outline: 3px solid #98b6f4; outline-offset: 3px; }
 @media (max-width: 600px) { body { padding: 14px; } section { padding: 18px 12px; } h1 { font-size: 22px; } .section-heading, .heading { align-items: flex-start; } .el-pagination { display: flex; justify-content: center; flex-wrap: wrap; } }
+
+.performance-ranking { margin-top: 16px; }
+.performance-ranking.el-table .total-count { background: #f5f7fb; }
+.performance-ranking.el-table .stage-tone-0 { background: #eef5ff; }
+.performance-ranking.el-table .stage-tone-1 { background: #eef8f3; }
+.performance-ranking.el-table .stage-tone-2 { background: #f5f1fc; }
+.performance-ranking.el-table .total-score { background: #e8effb; font-weight: 600; }
+.performance-ranking.el-table td, .performance-ranking.el-table th { border-right: 1px solid white; }
