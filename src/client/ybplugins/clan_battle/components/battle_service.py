@@ -16,7 +16,8 @@ from ..util import atqq, pcr_datetime
 from .handler import SubscribeHandler
 from .challenge_state import ChallengeState
 from .report_undo import BattleSnapshot, reverse_report
-from .battle_state import atomic_battle_operation, count_blades, validate_battle_id, validate_boss_number
+from .battle_state import after_commit, atomic_battle_operation, count_blades, validate_battle_id, validate_boss_number
+from .performance import forget_weights
 from .realize import get_clan_group, safe_load_json, future_operation, check_next_boss, subscribe_remind, send_group_notification
 
 _logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ def clear_data_slot(self, group_id: Groupid, battle_id: Optional[int] = None):
         Clan_challenge_undo.gid == group_id, Clan_challenge_undo.bid == battle_id).execute()
     Clan_challenge.delete().where(
         Clan_challenge.gid == group_id, Clan_challenge.bid == battle_id).execute()
+    after_commit(lambda: forget_weights(self, group_id, battle_id))
     Clan_group_backups.delete().where(
         Clan_group_backups.group_id == group_id,
         Clan_group_backups.battle_id == battle_id).execute()
@@ -322,6 +324,7 @@ def undo(self, group_id: Groupid, qqid: QQid) :
             if real_cycle_boss_health[last_num] > full_health: real_cycle_boss_health[last_num] = full_health
 
     last_challenge.delete_instance()
+    after_commit(lambda: forget_weights(self, group_id, last_challenge.bid, last_challenge.cid))
     if snapshot is not None:
         snapshot.delete_instance()
     else:

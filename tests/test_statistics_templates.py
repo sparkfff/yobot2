@@ -41,10 +41,12 @@ class StatisticsTemplateTests(unittest.IsolatedAsyncioTestCase):
         cards = [attrs for tag, attrs in elements if tag == 'el-button' and
                  attrs.get('class') == 'Service-item']
         self.assertEqual(len(cards), 4)
-        self.assertEqual(sum('disabled' in card for card in cards), 2)
+        self.assertEqual(sum('disabled' in card for card in cards), 1)
         self.assertEqual([card['@click'] for card in cards if '@click' in card],
-                         ["location.href='./1/'", "location.href='./2/'"])
-        self.assertEqual(html.count('暂不可用'), 2)
+                         ["location.href='./1/'", "location.href='./2/'", "location.href='./performance/'"])
+        self.assertEqual(html.count('暂不可用'), 1)
+        self.assertIn('业绩表', html)
+        self.assertNotIn('均值偏差', html)
         for retired in ('tools.yobot.win', 'clan-battle-analyzer.pcrbot.com',
                         'encodeURIComponent(apiurl)', 'target="_blank"'):
             self.assertNotIn(retired, html)

@@ -11,10 +11,64 @@ from ...ybdata import Clan_group, Clan_member, User
 from ..exception import ClanBattleError
 from ..util import pcr_datetime, atqq
 from .realize import send_group_notification
+from .performance import PerformanceError, archive_records, report as performance_report, save_config
 
 _logger = logging.getLogger(__name__)
 
 def register_routes(self, app: Quart):
+	@app.route(urljoin(self.setting['public_basepath'], 'clan/<int:group_id>/statistics/performance/'), methods=['GET'])
+	async def yobot_clan_performance(group_id):
+		if 'yobot_user' not in session:
+			return redirect(url_for('yobot_login', callback=request.path))
+		group = self.get_clan_group(group_id=group_id)
+		if group is None:
+			return await render_template('404.html', item='公会'), 404
+		user = User.get_or_none(qqid=session['yobot_user'])
+		membership = Clan_member.get_or_none(group_id=group_id, qqid=session['yobot_user'])
+		if not can_view_clan(user, membership):
+			return await render_template('clan/unauthorized.html')
+		return await render_template('clan/statistics/performance.html')
+
+	@app.route(urljoin(self.setting['public_basepath'], 'clan/<int:group_id>/statistics/performance/api/'), methods=['GET', 'PUT'])
+	async def yobot_clan_performance_api(group_id):
+		if 'yobot_user' not in session:
+			return jsonify(code=10, message='请先登录')
+		group = self.get_clan_group(group_id=group_id)
+		if group is None:
+			return jsonify(code=20, message='公会不存在')
+		user = User.get_or_none(qqid=session['yobot_user'])
+		membership = Clan_member.get_or_none(group_id=group_id, qqid=session['yobot_user'])
+		if not can_view_clan(user, membership):
+			return jsonify(code=11, message='无权查看本公会业绩')
+		can_edit = can_manage_clan(user, membership)
+		try:
+			if request.method == 'PUT':
+				if not can_edit:
+					return jsonify(code=11, message='仅本公会管理员可修改业绩权重')
+				body = await request.get_json()
+				if not isinstance(body, dict):
+					return jsonify(code=30, message='请求格式错误')
+				if not session.get('csrf_token') or body.get('csrf_token') != session.get('csrf_token'):
+					return jsonify(code=15, message='Invalid csrf_token')
+				battle_id = body.get('battle_id')
+				if isinstance(battle_id, bool) or not isinstance(battle_id, int) or not 0 <= battle_id <= 999999999:
+					return jsonify(code=30, message='档案编号必须是非负整数')
+				save_config(self, group, battle_id, body.get('config'), body.get('revision'),
+					archive_records(group_id, battle_id))
+			else:
+				value = request.args.get('battle_id', str(group.battle_id))
+				if not value.isdigit() or len(value) > 9:
+					return jsonify(code=30, message='档案编号必须是非负整数')
+				battle_id = int(value)
+			data = performance_report(self, group, battle_id)
+			return jsonify(code=0, **data, can_edit=can_edit, battle_id=battle_id,
+				group_name=group.group_name, current_battle_id=group.battle_id)
+		except PerformanceError as exc:
+			return jsonify(code=30, message=str(exc))
+		except OSError:
+			_logger.exception('Failed to read or save performance configuration')
+			return jsonify(code=31, message='业绩配置读写失败，原配置保留')
+
 	@app.route(
 		urljoin(self.setting['public_basepath'], 'clan/<int:group_id>/'),
 		methods=['GET'])
