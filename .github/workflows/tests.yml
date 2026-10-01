@@ -1,0 +1,25 @@
+name: Regression tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: pip
+          cache-dependency-path: src/client/requirements.txt
+      - run: python -m pip install -r src/client/requirements.txt
+      - run: python -m pip check
+      - run: python -m unittest discover -s tests -v

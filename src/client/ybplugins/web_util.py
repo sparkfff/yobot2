@@ -1,13 +1,15 @@
 import os
-import random
+import secrets
 import string
+from functools import wraps
 from urllib.parse import urljoin
 
 import aiohttp
 import requests
-from quart import Quart, jsonify, request, send_file, session
+from quart import Quart, jsonify, request, session
 
 from .yobot_exceptions import ServerError
+from .file_access import safe_path, send_safe_file
 
 _rand_string_chaset = (string.ascii_uppercase +
                        string.ascii_lowercase +
@@ -16,22 +18,30 @@ _rand_string_chaset = (string.ascii_uppercase +
 
 def rand_string(n=16):
     return ''.join(
-        random.choice(_rand_string_chaset)
+        secrets.choice(_rand_string_chaset)
         for _ in range(n)
     )
 
 
 def async_cached_func(maxsize=64):
-    cache = {}
+    if maxsize < 0:
+        raise ValueError('maxsize must be nonnegative')
 
     def decorator(fn):
+        cache = {}
+
+        @wraps(fn)
         async def wrapper(*args, nocache=False):  # args must be hashable
             key = tuple(args)
-            if nocache or (key not in cache):
-                if len(cache) >= maxsize:
-                    del cache[cache.keys().next()]
-                cache[key] = await fn(*args)
-            return cache[key]
+            if not nocache and key in cache:
+                return cache[key]
+            value = await fn(*args)
+            # No await between eviction and insertion: concurrent misses stay bounded.
+            if maxsize:
+                if key not in cache and len(cache) >= maxsize:
+                    del cache[next(iter(cache))]
+                cache[key] = value
+            return value
         return wrapper
     return decorator
 
@@ -59,11 +69,11 @@ class WebUtil:
         if not os.path.exists(self.resource_path):
             os.makedirs(self.resource_path)
 
-        if not os.path.exists(os.path.join(self.resource_path, 'background.jpg')):
+        if not os.path.exists(safe_path(self.resource_path, 'background.jpg')):
             try:
-                r = requests.get('https://i.loli.net/2020/05/31/IirkP9TpnV7Ks6q.jpg')
+                r = requests.get('https://i.loli.net/2020/05/31/IirkP9TpnV7Ks6q.jpg', timeout=(5, 10))
                 assert r.status_code == 200
-                with open(os.path.join(self.resource_path, 'background.jpg'), 'wb') as f:
+                with open(safe_path(self.resource_path, 'background.jpg'), 'wb') as f:
                     f.write(r.content)
             except Exception as e:
                 print(e)
@@ -109,7 +119,8 @@ class WebUtil:
                     "resource/<path:filename>"),
             methods=["GET"])
         async def yobot_resource(filename):
-            localfile = os.path.join(self.resource_path, filename)
+            localfile = safe_path(self.resource_path, filename)
+            local_name = filename
             if not os.path.exists(localfile):
                 if filename.endswith('.jpg'):
                     filename = filename[:-4] + '.webp@w400'
@@ -124,8 +135,10 @@ class WebUtil:
                 except aiohttp.ClientError as e:
                     print(e)
                     return '404: Not Found', 404
+                localfile = safe_path(self.resource_path, local_name)
                 if not os.path.exists(os.path.dirname(localfile)):
                     os.makedirs(os.path.dirname(localfile))
+                localfile = safe_path(self.resource_path, local_name)
                 with open(localfile, 'wb') as f:
                     f.write(res)
-            return await send_file(localfile)
+            return await send_safe_file(self.resource_path, local_name)

@@ -3,26 +3,27 @@ import gzip
 import json
 import mimetypes
 import os
-import random
+import secrets
 import shutil
 import socket
 import sys
 from io import BytesIO
 from functools import reduce
 from typing import Any, Callable, Dict, Iterable, List, Tuple
-from urllib.parse import urljoin
 
 import requests
 from aiocqhttp.api import Api
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from quart import Quart, make_response, request, send_file
+from quart import Quart, request
 
 if __package__:
+    from .ybplugins.file_access import register_file_routes
     from .ybplugins import (clan_battle, homepage,
                             login, marionette, settings,
                             switcher, templating, web_util, ybdata,
                             yobot_msg, custom, group_leave)
 else:
+    from ybplugins.file_access import register_file_routes
     from ybplugins import (clan_battle, homepage,
                            login, marionette, settings,
                            switcher, templating, web_util, ybdata,
@@ -141,7 +142,7 @@ class Yobot:
         # initialize web path
         if not self.glo_setting.get("public_address"):
             try:
-                res = requests.get("http://api.ipify.org/")
+                res = requests.get("http://api.ipify.org/", timeout=(5, 10))
                 ipaddr = res.text
             except:
                 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -175,62 +176,19 @@ class Yobot:
 
         # generate random secret_key
         if(quart_app.secret_key is None):
-            quart_app.secret_key = bytes(
-                (random.randint(0, 255) for _ in range(16)))
+            quart_app.secret_key = secrets.token_bytes(32)
 
         # add mimetype
         mimetypes.init()
         mimetypes.add_type('application/javascript', '.js')
         mimetypes.add_type('image/webp', '.webp')
         
-        # add route for js dependencies
-        @quart_app.route("/yobot-depencency/<path:filename>")
-        async def yobot_js_dependencies(filename):
-            accept_encoding = request.headers.get('Accept-Encoding', '')
-            origin_file = os.path.join(os.path.dirname(
-                __file__), "public", "libs", filename)
-            if ('gzip' not in accept_encoding.lower()
-                    or self.glo_setting['web_gzip'] == 0):
-                return await send_file(origin_file)
-            gzipped_file = origin_file + ".gz"
-            if not os.path.exists(gzipped_file):
-                if not os.path.exists(origin_file):
-                    return "404 not found", 404
-                with open(origin_file, 'rb') as of, open(gzipped_file, 'wb') as gf:
-                    with gzip.GzipFile(
-                        mode='wb',
-                        compresslevel=self.glo_setting["web_gzip"],
-                        fileobj=gf,
-                    ) as gzip_file:
-                        gzip_file.write(of.read())
-            response = await make_response(await send_file(gzipped_file))
-            response.mimetype = (
-                mimetypes.guess_type(os.path.basename(origin_file))[0]
-                or "application/octet-stream"
-            )
-            response.headers['Content-Encoding'] = 'gzip'
-            response.headers['Vary'] = 'Accept-Encoding'
-            return response
-
-        # add route for static files
-        @quart_app.route(
-            urljoin(self.glo_setting["public_basepath"],
-                    "assets/<path:filename>"),
-            methods=["GET"])
-        async def yobot_static(filename):
-            return await send_file(
-                os.path.join(os.path.dirname(__file__), "public", "static", filename))
-
-        # add route for output files
-        if not os.path.exists(os.path.join(dirname, "output")):
-            os.mkdir(os.path.join(dirname, "output"))
-
-        @quart_app.route(
-            urljoin(self.glo_setting["public_basepath"],
-                    "output/<path:filename>"),
-            methods=["GET"])
-        async def yobot_output(filename):
-            return await send_file(os.path.join(dirname, "output", filename))
+        register_file_routes(
+            quart_app, self.glo_setting["public_basepath"],
+            os.path.join(os.path.dirname(__file__), "public", "libs"),
+            os.path.join(os.path.dirname(__file__), "public", "static"),
+            os.path.join(dirname, "output"), self.glo_setting["web_gzip"],
+        )
 
         # filter
         self.black_list = set(self.glo_setting["black-list"])

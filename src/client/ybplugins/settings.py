@@ -2,6 +2,8 @@ import asyncio
 import json
 import logging
 import os
+import sys
+from pathlib import Path
 import datetime
 import aiohttp
 from urllib.parse import urljoin
@@ -9,6 +11,7 @@ from urllib.parse import urljoin
 from playhouse.shortcuts import model_to_dict
 from quart import Quart, jsonify, redirect, request, session, url_for
 
+from .permissions import is_global_owner
 from .templating import render_template
 from .ybdata import Clan_group, User
 
@@ -35,6 +38,9 @@ class Setting:
                  *args, **kwargs):
         self.setting = glo_setting
         self.boss_id_name = boss_id_name
+        config_root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[1]))
+        with (config_root / 'packedfiles' / 'default_config.json').open(encoding='utf-8') as config_file:
+            self.configurable_keys = frozenset(json.load(config_file))
 
     def _get_users_json(self, req_querys: dict):
         querys = []
@@ -78,7 +84,7 @@ class Setting:
             if 'yobot_user' not in session:
                 return redirect(url_for('yobot_login', callback=request.path))
             user = User.get_by_id(session['yobot_user'])
-            if user.authority_group >= 10:
+            if not is_global_owner(user):
                 if not user.authority_group >= 100:
                     uathname = '公会战管理员'
                 else:
@@ -102,19 +108,18 @@ class Setting:
                     message='Not logged in',
                 )
             user = User.get_by_id(session['yobot_user'])
-            if user.authority_group >= 100:
+            if not is_global_owner(user):
                 return jsonify(
                     code=11,
                     message='Insufficient authority',
                 )
             if request.method == 'GET':
-                settings = self.setting.copy()
+                settings = {key: value for key, value in self.setting.items()
+                            if key in self.configurable_keys}
                 boss_id_name = self.boss_id_name.copy()
-                del settings['dirname']
-                del settings['verinfo']
-                del settings['host']
-                del settings['port']
-                del settings['access_token']
+                settings.pop('host', None)
+                settings.pop('port', None)
+                settings.pop('access_token', None)
                 return jsonify(
                     code=0,
                     message='success',
@@ -123,17 +128,21 @@ class Setting:
                 )
             elif request.method == 'PUT':
                 req = await request.get_json()
-                if req.get('csrf_token') != session['csrf_token']:
+                if not isinstance(req, dict):
+                    return jsonify(code=30, message='Invalid payload')
+                if not session.get('csrf_token') or req.get('csrf_token') != session.get('csrf_token'):
                     return jsonify(
                         code=15,
                         message='Invalid csrf_token',
                     )
                 new_setting = req.get('setting')
-                if new_setting is None:
+                if not isinstance(new_setting, dict):
                     return jsonify(
                         code=30,
                         message='Invalid payload',
                     )
+                if set(new_setting) - self.configurable_keys:
+                    return jsonify(code=30, message='Unsupported setting fields')
                 self.setting.update(new_setting)
                 save_setting = self.setting.copy()
                 del save_setting['dirname']
@@ -154,7 +163,7 @@ class Setting:
             if 'yobot_user' not in session:
                 return redirect(url_for('yobot_login', callback=request.path))
             user = User.get_by_id(session['yobot_user'])
-            if user.authority_group >= 10:
+            if not is_global_owner(user):
                 if not user.authority_group >= 100:
                     uathname = '公会战管理员'
                 else:
@@ -177,7 +186,7 @@ class Setting:
                     message='Not logged in',
                 )
             user = User.get_by_id(session['yobot_user'])
-            if user.authority_group >= 10:
+            if not is_global_owner(user):
                 return jsonify(
                     code=11,
                     message='Insufficient authority',
@@ -193,13 +202,15 @@ class Setting:
                 )
             elif request.method == 'PUT':
                 req = await request.get_json()
-                if req.get('csrf_token') != session['csrf_token']:
+                if not isinstance(req, dict):
+                    return jsonify(code=30, message='Invalid payload')
+                if not session.get('csrf_token') or req.get('csrf_token') != session.get('csrf_token'):
                     return jsonify(
                         code=15,
                         message='Invalid csrf_token',
                     )
                 new_setting = req.get('setting')
-                if new_setting is None:
+                if not isinstance(new_setting, dict):
                     return jsonify(
                         code=30,
                         message='Invalid payload',
@@ -219,7 +230,7 @@ class Setting:
             if 'yobot_user' not in session:
                 return redirect(url_for('yobot_login', callback=request.path))
             user = User.get_by_id(session['yobot_user'])
-            if user.authority_group >= 10:
+            if not is_global_owner(user):
                 if not user.authority_group >= 100:
                     uathname = '公会战管理员'
                 else:
@@ -241,7 +252,7 @@ class Setting:
                     message='Not logged in',
                 )
             user = User.get_by_id(session['yobot_user'])
-            if user.authority_group >= 10:
+            if not is_global_owner(user):
                 return jsonify(
                     code=11,
                     message='Insufficient authority',
@@ -253,7 +264,9 @@ class Setting:
                         code=30,
                         message='Invalid payload',
                     )
-                if req.get('csrf_token') != session['csrf_token']:
+                if not isinstance(req, dict):
+                    return jsonify(code=30, message='Invalid payload')
+                if not session.get('csrf_token') or req.get('csrf_token') != session.get('csrf_token'):
                     return jsonify(
                         code=15,
                         message='Invalid csrf_token',
@@ -309,7 +322,7 @@ class Setting:
             if 'yobot_user' not in session:
                 return redirect(url_for('yobot_login', callback=request.path))
             user = User.get_by_id(session['yobot_user'])
-            if user.authority_group >= 10:
+            if not is_global_owner(user):
                 if not user.authority_group >= 100:
                     uathname = '公会战管理员'
                 else:
@@ -331,7 +344,7 @@ class Setting:
                     message='Not logged in',
                 )
             user = User.get_by_id(session['yobot_user'])
-            if user.authority_group >= 10:
+            if not is_global_owner(user):
                 return jsonify(
                     code=11,
                     message='Insufficient authority',
@@ -343,7 +356,9 @@ class Setting:
                         code=30,
                         message='Invalid payload',
                     )
-                if req.get('csrf_token') != session['csrf_token']:
+                if not isinstance(req, dict):
+                    return jsonify(code=30, message='Invalid payload')
+                if not session.get('csrf_token') or req.get('csrf_token') != session.get('csrf_token'):
                     return jsonify(
                         code=15,
                         message='Invalid csrf_token',
@@ -378,8 +393,15 @@ class Setting:
 
         @app.route(urljoin(self.setting['public_basepath'], 'admin/setting/auto_get_boss_data/'), methods=['POST'])
         async def auto_get_boss_data():
+            if 'yobot_user' not in session:
+                return jsonify(code=10, message='Not logged in')
+            user = User.get_or_none(qqid=session['yobot_user'])
+            if not is_global_owner(user):
+                return jsonify(code=11, message='Insufficient authority')
             req = await request.get_json()
-            if req.get('csrf_token') != session['csrf_token']:
+            if not isinstance(req, dict):
+                return jsonify(code=30, message='Invalid payload')
+            if not session.get('csrf_token') or req.get('csrf_token') != session.get('csrf_token'):
                 return jsonify(code=15, message='Invalid csrf_token' )
 
             new_setting = self.setting.copy()
