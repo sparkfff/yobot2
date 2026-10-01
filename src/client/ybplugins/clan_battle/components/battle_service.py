@@ -8,12 +8,14 @@ import json
 import logging
 from typing import Optional
 
-from ...ybdata import Clan_challenge, Clan_group, Clan_group_backups, Clan_member, User
+from ...ybdata import Clan_challenge, Clan_challenge_undo, Clan_group, Clan_group_backups, Clan_member, User
 from ...permissions import can_manage_clan
 from ..typing import Groupid, QQid
 from ..exception import GroupError, GroupNotExist, InputError, UserError, UserNotInGroup
 from ..util import atqq, pcr_datetime
 from .handler import SubscribeHandler
+from .challenge_state import ChallengeState
+from .report_undo import BattleSnapshot, reverse_report
 from .battle_state import atomic_battle_operation, count_blades, validate_battle_id, validate_boss_number
 from .realize import get_clan_group, safe_load_json, future_operation, check_next_boss, subscribe_remind, send_group_notification
 
@@ -35,6 +37,8 @@ def clear_data_slot(self, group_id: Groupid, battle_id: Optional[int] = None):
         raise GroupNotExist
 
     battle_id = group.battle_id if battle_id is None else validate_battle_id(battle_id)
+    Clan_challenge_undo.delete().where(
+        Clan_challenge_undo.gid == group_id, Clan_challenge_undo.bid == battle_id).execute()
     Clan_challenge.delete().where(
         Clan_challenge.gid == group_id, Clan_challenge.bid == battle_id).execute()
     Clan_group_backups.delete().where(
@@ -160,7 +164,8 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
         raise UserNotInGroup()
 
     group = get_clan_group(self, group_id)
-    applications = safe_load_json(group.challenging_member_list, {})
+    before = BattleSnapshot.capture(group)
+    applications = ChallengeState.from_json(group.challenging_member_list)
     original_boss = self.get_in_boss_num(group_id, qqid)
     explicit_boss = boss_num is not None
     if boss_num is None:
@@ -168,7 +173,7 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
     if boss_num is False and not explicit_boss:
         raise GroupError('又不申请出刀又不说打哪个王，报啥子刀啊 (╯‵□′)╯︵┻━┻')
     boss_num = validate_boss_number(boss_num)
-    previous_application = applications.get(boss_num, {}).get(str(qqid))
+    previous_application = applications.get(boss_num, qqid)
     now_health = safe_load_json(group.now_cycle_boss_health, {})
     next_health = safe_load_json(group.next_cycle_boss_health, {})
     if (explicit_boss or not original_boss) and now_health[boss_num] == 0 and not check_next_boss(self, group_id, boss_num):
@@ -201,7 +206,7 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
     if counts.finished >= 3:
         raise InputError('昨日上报次数已达到3次' if previous_day else '今日上报次数已达到3次')
     if not explicit_boss and previous_application:
-        is_continue = bool(is_continue or previous_application['is_continue'])
+        is_continue = bool(is_continue or previous_application.is_continue)
     else:
         is_continue = counts.choose_compensation(is_continue)
     if is_continue and counts.compensation <= 0:
@@ -211,7 +216,7 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
     challenge_damage = target_health[boss_num] if defeat else damage
     target_health[boss_num] -= challenge_damage
     health_remaining = target_health[boss_num]
-    Clan_challenge.create(
+    report = Clan_challenge.create(
         gid=group_id, qqid=qqid, bid=group.battle_id,
         challenge_pcrdate=date, challenge_pcrtime=time,
         boss_cycle=boss_cycle, boss_num=int(boss_num),
@@ -229,15 +234,12 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
 
     tree_notices = []
     if defeat:
-        tree_notices = [member for member, info in applications.get(boss_num, {}).items() if info['tree']]
-        applications.pop(boss_num, None)
-    if original_boss and original_boss in applications:
-        applications[original_boss].pop(str(qqid), None)
-        if not applications[original_boss]:
-            del applications[original_boss]
+        tree_notices = [member for member, info in applications.members(boss_num).items() if info.tree]
+        applications.remove_boss(boss_num)
+    applications.remove_member(qqid)
     group.now_cycle_boss_health = json.dumps(now_health)
     group.next_cycle_boss_health = json.dumps(next_health)
-    group.challenging_member_list = json.dumps(applications) if applications else None
+    group.challenging_member_list = applications.to_json_or_none()
     group.save()
 
     subscriber = SubscribeHandler(group=group)
@@ -266,6 +268,9 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
             counts.compensation - 1 if is_continue else counts.compensation,
             '剩余刀' if is_continue else '完整刀')
     message += '\n'.join(self.challenger_info_small(group, boss_num))
+    Clan_challenge_undo.create(cid=report.cid, gid=group_id, bid=group.battle_id,
+                               before_state=before.dumps(),
+                               after_state=BattleSnapshot.capture(group).dumps())
     future_operation(self, group, message)
     return message
 
@@ -289,32 +294,44 @@ def undo(self, group_id: Groupid, qqid: QQid) :
     if not can_manage_clan(user, membership) and (membership is None or last_challenge.qqid != qqid):
         raise UserError('无权撤销')
 
-    last_num = str(last_challenge.boss_num) #上一刀的boss_num
-    last_cycle = last_challenge.boss_cycle  #上一刀的周目数
-    level = self._level_by_cycle(last_cycle, group.game_server)#阶段
-
-    now_cycle_boss_health = safe_load_json(group.now_cycle_boss_health, {})
-    next_cycle_boss_health = safe_load_json(group.next_cycle_boss_health, {})
-    real_cycle_boss_health = now_cycle_boss_health #用来记录上一刀打的是哪个周目的boss
-
-    if last_cycle < group.boss_cycle:   # 判断被撤销的一刀是否是切换周目的一刀
-        for boss_num, health in now_cycle_boss_health.items():
-            next_cycle_boss_health[boss_num] = health
-            now_cycle_boss_health[boss_num] = 0
-        now_cycle_boss_health[last_num] = last_challenge.challenge_damage
-        group.boss_cycle = last_cycle
+    snapshot = Clan_challenge_undo.get_or_none(
+        cid=last_challenge.cid, gid=group_id, bid=group.battle_id)
+    if snapshot is not None:
+        restored = reverse_report(group, BattleSnapshot.loads(snapshot.before_state),
+                                  BattleSnapshot.loads(snapshot.after_state))
+        restored.restore(group)
     else:
-        if last_cycle != group.boss_cycle: real_cycle_boss_health = next_cycle_boss_health
-        real_cycle_boss_health[last_num] += last_challenge.challenge_damage
-        full_health = self.bossinfo[group.game_server][level][int(last_num)-1]
-        if real_cycle_boss_health[last_num] > full_health: real_cycle_boss_health[last_num] = full_health
+        last_num = str(last_challenge.boss_num) #上一刀的boss_num
+        last_cycle = last_challenge.boss_cycle  #上一刀的周目数
+        level = self._level_by_cycle(last_cycle, group.game_server)#阶段
+
+        now_cycle_boss_health = safe_load_json(group.now_cycle_boss_health, {})
+        next_cycle_boss_health = safe_load_json(group.next_cycle_boss_health, {})
+        real_cycle_boss_health = now_cycle_boss_health #用来记录上一刀打的是哪个周目的boss
+
+        if last_cycle < group.boss_cycle:   # 判断被撤销的一刀是否是切换周目的一刀
+            for boss_num, health in now_cycle_boss_health.items():
+                next_cycle_boss_health[boss_num] = health
+                now_cycle_boss_health[boss_num] = 0
+            now_cycle_boss_health[last_num] = last_challenge.challenge_damage
+            group.boss_cycle = last_cycle
+        else:
+            if last_cycle != group.boss_cycle: real_cycle_boss_health = next_cycle_boss_health
+            real_cycle_boss_health[last_num] += last_challenge.challenge_damage
+            full_health = self.bossinfo[group.game_server][level][int(last_num)-1]
+            if real_cycle_boss_health[last_num] > full_health: real_cycle_boss_health[last_num] = full_health
 
     last_challenge.delete_instance()
-    group.now_cycle_boss_health = json.dumps(now_cycle_boss_health)
-    group.next_cycle_boss_health = json.dumps(next_cycle_boss_health)
+    if snapshot is not None:
+        snapshot.delete_instance()
+    else:
+        group.now_cycle_boss_health = json.dumps(now_cycle_boss_health)
+        group.next_cycle_boss_health = json.dumps(next_cycle_boss_health)
     group.save()
 
     nik = self._get_nickname_by_qqid(last_challenge.qqid)
     msg = f'{nik}的出刀记录已被撤销'
+    if snapshot is None:
+        msg += '（旧记录无状态快照，仅恢复血量和刀数）'
     future_operation(self, group, msg)
     return msg

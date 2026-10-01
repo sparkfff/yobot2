@@ -6,7 +6,7 @@ from .web_util import rand_string
 
 db_mode = True  # True为本地（原），Flase为为改为mysql（需要在第15行配置使用）
 
-_version = 2  # 目前版本
+_version = 3  # 目前版本
 MAX_TRY_TIMES = 5
 
 if db_mode:
@@ -143,6 +143,18 @@ class Clan_challenge(_BaseModel):
         )
 
 
+class Clan_challenge_undo(_BaseModel):
+    """Exact before/after state for new reports; legacy reports remain unchanged."""
+    cid = BigIntegerField(primary_key=True)
+    gid = BigIntegerField()
+    bid = IntegerField()
+    before_state = TextField()
+    after_state = TextField()
+
+    class Meta:
+        indexes = ((("gid", "bid"), False),)
+
+
 class Character(_BaseModel):
     chid = IntegerField(primary_key=True)
     name = CharField(max_length=64)
@@ -169,36 +181,40 @@ def init(sqlite_filename):
             },
         )
 
-    old_version = 1
-    if not DB_schema.table_exists():
-        DB_schema.create_table()
-        DB_schema.create(key="version", value=str(_version))
-    else:
+    has_schema = DB_schema.table_exists()
+    if has_schema:
         old_version = int(DB_schema.get(key="version").value)
-
-    if not User.table_exists():
-        Admin_key.create_table()
-        User.create_table()
-        User_login.create_table()
-        Clan_group.create_table()
-        Clan_member.create_table()
-        Clan_group_backups.create_table()
-        Clan_challenge.create_table()
-        Character.create_table()
-        old_version = _version
+    else:
+        old_version = 1 if User.table_exists() else _version
+    # Never create tables in a database owned by a newer program version.
     if old_version > _version:
         print("数据库版本高于程序版本，请升级yobot")
         raise SystemExit()
-    if old_version < _version:
-        print("正在升级数据库")
-        db_upgrade(old_version)
-        print("数据库升级完毕")
+
+    with _db.atomic():
+        if not has_schema:
+            DB_schema.create_table()
+            DB_schema.create(key="version", value=str(old_version))
+        if not User.table_exists():
+            _db.create_tables([
+                Admin_key, User, User_login, Clan_group, Clan_member,
+                Clan_group_backups, Clan_challenge, Clan_challenge_undo, Character,
+            ])
+            DB_schema.replace(key="version", value=str(_version)).execute()
+        elif old_version < _version:
+            print("正在升级数据库")
+            db_upgrade(old_version)
+            print("数据库升级完毕")
 
 
 def db_upgrade(old_version):
-    migrator = SqliteMigrator(_db)
-    if old_version < 2:
-        pass
+    if old_version > _version:
+        raise SystemExit("数据库版本高于程序版本，请升级yobot")
+    with _db.atomic():
+        _upgrade_in_transaction(old_version)
+
+
+def _upgrade_in_transaction(old_version):
     if old_version <= 1:
         """
         更新预约表存储结构
@@ -221,4 +237,6 @@ def db_upgrade(old_version):
             group.subscribe_list = new_subscribe_list
             group.save()
 
+    if old_version < 3:
+        Clan_challenge_undo.create_table(safe=True)
     DB_schema.replace(key="version", value=str(_version)).execute()

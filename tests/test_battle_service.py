@@ -10,12 +10,12 @@ from peewee import SqliteDatabase
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src' / 'client'))
 
-from ybplugins.ybdata import Clan_challenge, Clan_group, Clan_group_backups, Clan_member, User
+from ybplugins.ybdata import Clan_challenge, Clan_challenge_undo, Clan_group, Clan_group_backups, Clan_member, User
 from ybplugins.clan_battle.battle import ClanBattle
 from ybplugins.clan_battle.exception import GroupError, InputError, UserError
 from ybplugins.clan_battle.components.battle_state import after_commit
 
-MODELS = [User, Clan_group, Clan_member, Clan_challenge, Clan_group_backups]
+MODELS = [User, Clan_group, Clan_member, Clan_challenge, Clan_group_backups, Clan_challenge_undo]
 TODAY = 20000
 
 

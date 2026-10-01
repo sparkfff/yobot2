@@ -13,7 +13,8 @@ from io import BytesIO
 from PIL import Image, ImageFont, ImageDraw
 from typing import Any, Dict, List, Optional, Union, Tuple
 
-from .handler import SubscribeHandler
+from .handler import ChallengeHandler, SubscribeHandler
+from .challenge_state import ChallengeState
 from .battle_state import after_commit, atomic_battle_operation, count_blades, validate_boss_number
 
 from ..typing import ClanBattleReport, Groupid, Pcr_date, QQid
@@ -639,21 +640,14 @@ def put_on_the_tree(self, group_id: Groupid, qqid: QQid, message=None, boss_num=
 		if str(self.get_in_boss_num(group_id, challenger)) != str(boss_num):
 			raise GroupError('你申请的王和挂树的王不一样，怎么挂树啊 (╯‵□′)╯︵┻━┻')
 
-	challenging_member_list = safe_load_json(group.challenging_member_list, {})
-	for item in challenging_member_list.values():
-		if item.get(str(challenger)) != None and item.get(str(challenger)).get('tree'):
-			raise GroupError('您已经在树上了')
-
-
-	if (behalf is None) and (behalf_is_member is None):
-		challenging_member_list[boss_num][str(challenger)]['tree'] = True
-		challenging_member_list[boss_num][str(challenger)]['msg'] = message
-	else:
-		challenging_member_list[boss_num][str(challenger)]['tree'] = True
-		challenging_member_list[boss_num][str(challenger)]['msg'] = f'[「{behalf_nickname}」代挂]' + str(message)
-
-	group.challenging_member_list = json.dumps(challenging_member_list)
-	group.save()
+	handler = ChallengeHandler(group)
+	if not ((behalf is None) and (behalf_is_member is None)):
+		message = f'[「{behalf_nickname}」代挂]' + str(message)
+	try:
+		handler.state.put_on_tree(challenger, message)
+	except ValueError:
+		raise GroupError('您已经在树上了')
+	handler.save()
 	msg = f'{challenger_nickname}挂树惹~ (っ °Д °;)っ'
 	future_operation(self, group, msg)
 	return msg
@@ -703,14 +697,9 @@ def check_tree(self, group_id: Groupid, user_id: QQid):
 	if group is None: raise GroupNotExist
 	user = User.get_or_none(qqid=user_id)
 	if user is None: raise GroupError('请先加入公会')
-	challenging_member_list = safe_load_json(group.challenging_member_list, {})
-	for i in range(1, 6):
-		try:
-			for qid in challenging_member_list[str(i)]:
-				if challenging_member_list[str(i)][qid]['tree']:
-					return i
-		except KeyError:
-			continue
+	found = ChallengeState.from_json(group.challenging_member_list).find_member(user_id)
+	if found is not None and found[1].tree:
+		return int(found[0])
 	return False
 
 
@@ -733,23 +722,20 @@ def take_it_of_the_tree(self, group_id: Groupid, qqid: QQid, boss_num=0, take_it
 	user = User.get_or_none(qqid=qqid)
 	if user is None: raise GroupError('请先加入公会')
 
-	challenging_member_list = safe_load_json(group.challenging_member_list, {})
+	handler = ChallengeHandler(group)
 
 	if take_it_type == 0:
 		boss_num = self.get_in_boss_num(group_id, qqid)
 		if not boss_num :
 			raise GroupError('你都没申请出刀，下啥子树啊 (╯‵□′)╯︵┻━┻')
-		qqid = str(qqid)
-		if not challenging_member_list[boss_num][qqid]['tree']:
+		if not handler.state.get(boss_num, qqid).tree:
 			raise GroupError('你都没挂树，下啥子树啊 (╯‵□′)╯︵┻━┻')
-		challenging_member_list[boss_num][qqid]['tree'] = False
-		challenging_member_list[boss_num][qqid]['msg'] = None
-		group.challenging_member_list = json.dumps(challenging_member_list)
-		group.save()
+		handler.state.take_off_tree(qqid)
+		handler.save()
 	elif take_it_type == 1:
 		notice = []
-		for challenger, info in challenging_member_list[boss_num].items():
-			if info['tree']: notice.append(atqq(challenger))
+		for challenger, info in handler.state.members(boss_num).items():
+			if info.tree: notice.append(atqq(challenger))
 		if len(notice) > 0:
 			send_group_notification(self, group_id, '可以下树惹~ _(:з)∠)_\n'+'\n'.join(notice))
 	msg = '下树惹~ _(:з)∠)_'
@@ -813,19 +799,9 @@ def apply_for_challenge(self, is_continue, group_id:Groupid, qqid:QQid, boss_num
 	
 	nik = self._get_nickname_by_qqid(challenger)
 	info = [f'{nik}已开始挑战boss，剩最后几秒的时候记得暂停报伤害哦~']
-	challenging_list = safe_load_json(group.challenging_member_list, {})
-	if boss_num not in challenging_list:
-		challenging_list[boss_num] = {}
-	challenging_list[boss_num][challenger] = {
-		'is_continue' : is_continue, 
-		'behalf' : behalf, 
-		's' : 0,
-		'damage' : 0,
-		'tree' : False,
-		'msg' : None,
-	}
-	group.challenging_member_list = json.dumps(challenging_list)
-	group.save()
+	handler = ChallengeHandler(group)
+	handler.state.apply(boss_num, challenger, is_continue, behalf)
+	handler.save()
 
 	self.challenger_info_small(group, boss_num, info)
 	info = '\n'.join(info)
@@ -847,43 +823,36 @@ def cancel_blade(self, group_id: Groupid, qqid: QQid, boss_num=0, cancel_type=1,
 	msg = '？'
 	if group.challenging_member_list == None:
 		raise GroupError('目前没有人正在挑战这个boss')
+	handler = ChallengeHandler(group)
 	if cancel_type == 0 :
-		group.challenging_member_list = None
+		handler.state = ChallengeState()
+		handler.save(empty_as_none=True)
 		msg = '已取消所有'
 	elif cancel_type == 1 :
 		_boss_num = self.get_in_boss_num(group_id, qqid)
 		if not _boss_num : raise GroupError('你都没申请出刀，取啥子消啊 (╯‵□′)╯︵┻━┻')
-		challenging_list = safe_load_json(group.challenging_member_list, {})
-		del challenging_list[_boss_num][str(qqid)]
-		if len(challenging_list[_boss_num]) == 0: del challenging_list[_boss_num]
-		if len(challenging_list) == 0: group.challenging_member_list = None
-		else: group.challenging_member_list = json.dumps(challenging_list)
+		handler.state.remove_member(qqid)
+		handler.save(empty_as_none=True)
 		msg = '取消申请出刀成功'
 	elif boss_num != 0 and cancel_type == 2:
-		challenging_list = safe_load_json(group.challenging_member_list, {})
-		if boss_num not in challenging_list: return
-		del challenging_list[boss_num]
-		group.challenging_member_list = json.dumps(challenging_list)
+		if str(boss_num) not in handler.state.applications: return
+		handler.state.remove_boss(boss_num)
+		handler.save()
 
 	if send_web: future_operation(self, group, msg)
-	group.save()
 	return msg
 
 #检查是否已申请出刀
 def check_blade(self, group_id: Groupid, qqid: QQid):
 	"""
-	返回False即已申请出刀，返回True为未申请出刀
+	返回True即已申请出刀，返回False为未申请出刀
 	Args:
 		group_id: QQ群号
 		qqid: 需要进行操作的QQ号
 	"""
 	group:Clan_group = get_clan_group(self, group_id)
 	if group is None: raise GroupNotExist
-	challenging_list = safe_load_json(group.challenging_member_list, {})
-	for _, infos in challenging_list.items():
-		for challenger in infos.keys():
-			if str(qqid) == challenger : return True
-	return False
+	return ChallengeState.from_json(group.challenging_member_list).find_member(qqid) is not None
 
 #获取boss_num
 def get_in_boss_num(self, group_id, qqid):
@@ -894,11 +863,8 @@ def get_in_boss_num(self, group_id, qqid):
 		qqid: 需要进行操作的QQ号
 	"""
 	group:Clan_group = get_clan_group(self, group_id)
-	challenging_list = safe_load_json(group.challenging_member_list, {})
-	for boss_num, infos in challenging_list.items():
-		for challenger in infos.keys():
-			if str(qqid) == challenger : return boss_num
-	return False
+	found = ChallengeState.from_json(group.challenging_member_list).find_member(qqid)
+	return found[0] if found is not None else False
 
 
 #SL
@@ -971,23 +937,18 @@ def report_hurt(self, s, hurt, group_id:Groupid, qqid:QQid, clean_type = 0):
 		raise GroupError('你都没申请出刀，报啥子伤害啊 (╯‵□′)╯︵┻━┻')
 
 	ret_msg = ''
-	challenging_member_list = safe_load_json(group.challenging_member_list, {})
-
-	str_qqid = str(qqid)
+	handler = ChallengeHandler(group)
 	if clean_type == 0:
-		challenging_member_list[boss_num][str_qqid]['s'] = s
-		challenging_member_list[boss_num][str_qqid]['damage'] = hurt
+		handler.state.report_damage(qqid, s, hurt)
 		ret_msg = '已记录伤害，小心不要手滑哦~ ♪(´▽｀)'
 	elif clean_type == 1:
-		if challenging_member_list[boss_num][str_qqid]['damage'] == 0:
+		if handler.state.get(boss_num, qqid).damage == 0:
 			ret_msg = '您还没有报伤害呢'
 		else:
-			challenging_member_list[boss_num][str_qqid]['s'] = 0
-			challenging_member_list[boss_num][str_qqid]['damage'] = 0
+			handler.state.report_damage(qqid, 0, 0)
 			ret_msg = '取消成功~'
 
-	group.challenging_member_list = json.dumps(challenging_member_list)
-	group.save()
+	handler.save()
 	return ret_msg
 
 #单个boss信息
