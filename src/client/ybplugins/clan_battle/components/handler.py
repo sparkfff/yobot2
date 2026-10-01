@@ -2,6 +2,19 @@ from typing import Dict, List
 import json
 
 from ...ybdata import Clan_group
+from .challenge_state import ChallengeState
+
+
+class ChallengeHandler:
+    """Translate the clan JSON column at the persistence boundary."""
+    def __init__(self, group: Clan_group) -> None:
+        self.state = ChallengeState.from_json(group.challenging_member_list)
+        self._clan_group = group
+
+    def save(self, empty_as_none=False) -> None:
+        self._clan_group.challenging_member_list = (
+            self.state.to_json_or_none() if empty_as_none else self.state.to_json())
+        self._clan_group.save()
 
 
 class SubscribeHandler:

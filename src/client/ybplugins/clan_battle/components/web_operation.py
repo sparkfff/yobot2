@@ -5,11 +5,12 @@ from urllib.parse import urljoin
 import peewee
 from quart import Quart, jsonify, make_response, redirect, request, session, url_for
 
+from ...permissions import can_manage_clan, can_view_clan
 from ...templating import render_template
 from ...ybdata import Clan_group, Clan_member, User
 from ..exception import ClanBattleError
 from ..util import pcr_datetime, atqq
-from .multi_cq_utils import who_am_i
+from .realize import send_group_notification
 
 _logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ def register_routes(self, app: Quart):
 			return await render_template('404.html', item='公会'), 404
 		is_member = Clan_member.get_or_none(
 			group_id=group_id, qqid=session['yobot_user'])
-		if (not is_member and user.authority_group >= 10):
+		if not can_view_clan(user, is_member):
 			return await render_template('clan/unauthorized.html')
 		return await render_template(
 			'clan/panel.html',
@@ -46,7 +47,7 @@ def register_routes(self, app: Quart):
 			return await render_template('404.html', item='公会'), 404
 		is_member = Clan_member.get_or_none(
 			group_id=group_id, qqid=session['yobot_user'])
-		if (not is_member and user.authority_group >= 10):
+		if not can_view_clan(user, is_member):
 			return await render_template('clan/unauthorized.html')
 		return await render_template(
 			'clan/subscribers.html',
@@ -75,19 +76,19 @@ def register_routes(self, app: Quart):
 			user = User.get_by_id(user_id)
 			is_member = Clan_member.get_or_none(
 				group_id=group_id, qqid=user_id)
-			if (not is_member and user.authority_group >= 10):
+			if not can_view_clan(user, is_member):
 				return jsonify(
 					code=11,
 					message='Insufficient authority',
 				)
 		try:
 			payload = await request.get_json()
-			if payload is None:
+			if not isinstance(payload, dict):
 				return jsonify(
 					code=30,
 					message='Invalid payload',
 				)
-			if (user_id != 0) and (payload.get('csrf_token') != session['csrf_token']):
+			if (user_id != 0) and (not session.get('csrf_token') or payload.get('csrf_token') != session.get('csrf_token')):
 				return jsonify(
 					code=15,
 					message='Invalid csrf_token',
@@ -117,7 +118,7 @@ def register_routes(self, app: Quart):
 					bossData=self._boss_data_dict(group),
 					base_cycle = group.boss_cycle,
 					selfData={
-						'is_admin': (is_member and user.authority_group < 100),
+						'is_admin': can_manage_clan(user, is_member),
 						'user_id': user_id,
 					}
 				)
@@ -196,13 +197,7 @@ def register_routes(self, app: Quart):
 				_logger.info('网页 成功 {} {} {}'.format(
 					user_id, group_id, action))
 				if group.notification & 0x01:
-					asyncio.ensure_future(
-						self.api.send_group_msg(
-							self_id = who_am_i(group_id),
-							group_id=group_id,
-							message=str(status),
-						)
-					)
+					send_group_notification(self, group_id, str(status))
 				return jsonify(
 					code=0,
 					bossData=self._boss_data_dict(group),
@@ -220,13 +215,7 @@ def register_routes(self, app: Quart):
 				_logger.info('网页 成功 {} {} {}'.format(
 					user_id, group_id, action))
 				if group.notification & 0x02:
-					asyncio.ensure_future(
-						self.api.send_group_msg(
-							self_id = who_am_i(group_id),
-							group_id=group_id,
-							message=str(status),
-						)
-					)
+					send_group_notification(self, group_id, str(status))
 				return jsonify(
 					code=0,
 					bossData=self._boss_data_dict(group),
@@ -248,13 +237,7 @@ def register_routes(self, app: Quart):
 					)
 				_logger.info('网页 成功 {} {} {}'.format(user_id, group_id, action))
 				if group.notification & 0x04:
-					asyncio.ensure_future(
-						self.api.send_group_msg(
-							self_id = who_am_i(group_id),
-							group_id = group_id,
-							message = atqq(behalf)+status,
-						)
-					)
+					send_group_notification(self, group_id, atqq(behalf)+status)
 				return jsonify(
 					code = 0,
 					bossData = self._boss_data_dict(group),
@@ -268,13 +251,7 @@ def register_routes(self, app: Quart):
 					return jsonify(code=10, message=str(e))
 				_logger.info('网页 成功 {} {} {}'.format(user_id, group_id, action))
 				if group.notification & 0x08:
-					asyncio.ensure_future(
-						self.api.send_group_msg(
-							self_id = who_am_i(group_id),
-							group_id = group_id,
-							message = atqq(behalf)+status,
-						)
-					)
+					send_group_notification(self, group_id, atqq(behalf)+status)
 				return jsonify(
 					code=0,
 					bossData=self._boss_data_dict(group),
@@ -288,13 +265,7 @@ def register_routes(self, app: Quart):
 					return jsonify(code=10, message=str(e))
 				_logger.info('网页 成功 {} {} {}'.format(user_id, group_id, action))
 				if group.notification & 0x08:
-					asyncio.ensure_future(
-						self.api.send_group_msg(
-							self_id = who_am_i(group_id),
-							group_id = group_id,
-							message = atqq(behalf)+status,
-						)
-					)
+					send_group_notification(self, group_id, atqq(behalf)+status)
 				return jsonify(
 					code=0,
 					bossData=self._boss_data_dict(group),
@@ -308,13 +279,7 @@ def register_routes(self, app: Quart):
 					return jsonify(code=10, message=str(e))
 				_logger.info('网页 成功 {} {} {}'.format(user_id, group_id, action))
 				if group.notification & 0x08:
-					asyncio.ensure_future(
-						self.api.send_group_msg(
-							self_id = who_am_i(group_id),
-							group_id = group_id,
-							message = atqq(behalf)+status,
-						)
-					)
+					send_group_notification(self, group_id, atqq(behalf)+status)
 				return jsonify(
 					code=0,
 					bossData=self._boss_data_dict(group),
@@ -333,13 +298,7 @@ def register_routes(self, app: Quart):
 				sw = '添加' if status else '取消'
 				_logger.info('网页 成功 {} {} {}'.format(user_id, group_id, action))
 				if group.notification & 0x200:
-					asyncio.ensure_future(
-						self.api.send_group_msg(
-							self_id = who_am_i(group_id),
-							group_id=group_id,
-							message=(self._get_nickname_by_qqid(sl_member_qqid) + f'已{sw}SL记录'),
-						)
-					)
+					send_group_notification(self, group_id, self._get_nickname_by_qqid(sl_member_qqid) + f'已{sw}SL记录')
 				return jsonify(code=0, notice=f'已{sw}SL记录')
 			elif action == 'get_subscribers':
 				subscribers = self.get_subscribe_list(group_id)
@@ -362,13 +321,7 @@ def register_routes(self, app: Quart):
 						boss_num,
 					)
 					if message: notice_message += '\n留言：' + message
-					asyncio.ensure_future(
-						self.api.send_group_msg(
-							self_id = who_am_i(group_id),
-							group_id = group_id,
-							message = notice_message,
-						)
-					)
+					send_group_notification(self, group_id, notice_message)
 				return jsonify(code=0, notice=notice)
 			elif action == 'cancel_subscribe':
 				boss_num = payload['boss_num']
@@ -379,16 +332,10 @@ def register_routes(self, app: Quart):
 				_logger.info('网页 成功 {} {} {}'.format(user_id, group_id, action))
 				notice = '取消预约成功'
 				if group.notification & 0x80:
-					asyncio.ensure_future(
-						self.api.send_group_msg(
-							self_id = who_am_i(group_id),
-							group_id = group_id,
-							message = '{}已取消预约{}号boss'.format(user.nickname, boss_num),
-						)
-					)
+					send_group_notification(self, group_id, '{}已取消预约{}号boss'.format(user.nickname, boss_num))
 				return jsonify(code = 0, notice = notice)
 			elif action == 'modify':
-				if user.authority_group >= 100:
+				if not can_manage_clan(user, is_member):
 					return jsonify(code=11, message='Insufficient authority')
 				try:
 					status = self.modify(
@@ -403,19 +350,13 @@ def register_routes(self, app: Quart):
 				_logger.info('网页 成功 {} {} {}'.format(
 					user_id, group_id, action))
 				if group.notification & 0x100:
-					asyncio.ensure_future(
-						self.api.send_group_msg(
-							self_id = who_am_i(group_id),
-							group_id=group_id,
-							message=str(status),
-						)
-					)
+					send_group_notification(self, group_id, str(status))
 				return jsonify(
 					code=0,
 					bossData=self._boss_data_dict(group),
 				)
 			elif action == 'send_remind':
-				if user.authority_group >= 100:
+				if not can_manage_clan(user, is_member):
 					return jsonify(code=11, message='Insufficient authority')
 				sender = user_id
 				private = payload.get('send_private_msg', False)
@@ -433,7 +374,7 @@ def register_routes(self, app: Quart):
 					notice='发送成功',
 				)
 			elif action == 'drop_member':
-				if user.authority_group >= 100:
+				if not can_manage_clan(user, is_member):
 					return jsonify(code=11, message='Insufficient authority')
 				count = self.drop_member(group_id, payload['memberlist'])
 				return jsonify(
@@ -477,7 +418,7 @@ def register_routes(self, app: Quart):
 			return await render_template('404.html', item='公会'), 404
 		is_member = Clan_member.get_or_none(
 			group_id=group_id, qqid=session['yobot_user'])
-		if (not is_member and user.authority_group >= 10):
+		if not can_view_clan(user, is_member):
 			return await render_template('clan/unauthorized.html')
 		return await render_template(
 			'clan/user.html',
@@ -497,12 +438,12 @@ def register_routes(self, app: Quart):
 			return await render_template('404.html', item='公会'), 404
 		is_member = Clan_member.get_or_none(
 			group_id=group_id, qqid=session['yobot_user'])
-		if (not is_member):
+		if not can_view_clan(user, is_member):
 			return await render_template(
 				'unauthorized.html',
 				limit='本公会成员',
 				uath='无')
-		if (user.authority_group >= 100):
+		if not can_manage_clan(user, is_member):
 			return await render_template(
 				'unauthorized.html',
 				limit='公会战管理员',
@@ -529,19 +470,19 @@ def register_routes(self, app: Quart):
 			)
 		is_member = Clan_member.get_or_none(
 			group_id=group_id, qqid=session['yobot_user'])
-		if (user.authority_group >= 100 or not is_member):
+		if not can_manage_clan(user, is_member):
 			return jsonify(
 				code=11,
 				message='Insufficient authority',
 			)
 		try:
 			payload = await request.get_json()
-			if payload is None:
+			if not isinstance(payload, dict):
 				return jsonify(
 					code=30,
 					message='Invalid payload',
 				)
-			if payload.get('csrf_token') != session['csrf_token']:
+			if not session.get('csrf_token') or payload.get('csrf_token') != session.get('csrf_token'):
 				return jsonify(
 					code=15,
 					message='Invalid csrf_token',
@@ -562,7 +503,7 @@ def register_routes(self, app: Quart):
 				group.game_server = payload['game_server']
 				group.notification = payload['notification']
 				group.privacy = payload['privacy']
-				group.save()
+				group.save(only=[Clan_group.game_server, Clan_group.notification, Clan_group.privacy])
 				_logger.info('网页 成功 {} {} {}'.format(
 					user_id, group_id, action))
 				return jsonify(code=0, message='success')
@@ -605,7 +546,7 @@ def register_routes(self, app: Quart):
 			return await render_template('404.html', item='公会'), 404
 		is_member = Clan_member.get_or_none(
 			group_id=group_id, qqid=session['yobot_user'])
-		if (not is_member and user.authority_group >= 10):
+		if not can_view_clan(user, is_member):
 			return await render_template('clan/unauthorized.html')
 		return await render_template(
 			'clan/statistics.html',
@@ -626,7 +567,7 @@ def register_routes(self, app: Quart):
 			return await render_template('404.html', item='公会'), 404
 		is_member = Clan_member.get_or_none(
 			group_id=group_id, qqid=session['yobot_user'])
-		if (not is_member and user.authority_group >= 10):
+		if not can_view_clan(user, is_member):
 			return await render_template('clan/unauthorized.html')
 		return await render_template(
 			f'clan/statistics/statistics{sid}.html',
@@ -654,7 +595,7 @@ def register_routes(self, app: Quart):
 			user = User.get_by_id(session['yobot_user'])
 			is_member = Clan_member.get_or_none(
 				group_id=group_id, qqid=session['yobot_user'])
-			if (not is_member and user.authority_group >= 10):
+			if not can_view_clan(user, is_member):
 				return jsonify(code=11, message='Insufficient authority')
 		battle_id = request.args.get('battle_id')
 		if battle_id is None:
@@ -702,7 +643,7 @@ def register_routes(self, app: Quart):
 			user = User.get_by_id(session['yobot_user'])
 			is_member = Clan_member.get_or_none(
 				group_id=group_id, qqid=session['yobot_user'])
-			if (not is_member and user.authority_group >= 10):
+			if not can_view_clan(user, is_member):
 				return await render_template('clan/unauthorized.html')
 		return await render_template(
 			'clan/progress.html',
@@ -722,7 +663,7 @@ def register_routes(self, app: Quart):
 			user = User.get_by_id(session['yobot_user'])
 			is_member = Clan_member.get_or_none(
 				group_id=group_id, qqid=session['yobot_user'])
-			if (not is_member and user.authority_group >= 10):
+			if not can_view_clan(user, is_member):
 				return await render_template('clan/unauthorized.html')
 		return await render_template(
 			'clan/clan-rank.html',

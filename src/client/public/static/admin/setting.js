@@ -9,6 +9,7 @@ var vm = new Vue({
         applyName: '',
         loading: false,
         boss_id_name: {},
+        bossUseLatest: false,
     },
     mounted() {
         var thisvue = this;
@@ -54,25 +55,27 @@ var vm = new Vue({
                 type:'info',
             })
             axios.post("./auto_get_boss_data/", {
-                csrf_token: csrf_token
+                csrf_token: csrf_token,
+                use_latest: thisvue.bossUseLatest,
             }).then(function (res) {
                 if (res.data.code == 0) {
-                    thisvue.$alert(res.data.message + '<br/><br/>刷新页面查看获取结果，重启机器人后生效。', '获取成功', {
-                        dangerouslyUseHTMLString: true,
+                    thisvue.$alert(res.data.message + '\n\n刷新页面查看获取结果，重启机器人后生效。', res.data.partial ? '部分获取成功' : '获取成功', {
                         confirmButtonText: '好的',
-                        type: 'success',
+                        type: res.data.partial ? 'warning' : 'success',
+                        customClass: 'boss-data-result',
                     });
                 } else {
                     thisvue.$message({
-                        dangerouslyUseHTMLString: true,
-                        message:res.data.message + '<br/>自动获取失败',
+                        message:res.data.message,
+                        duration: 0,
+                        showClose: true,
+                        customClass: 'boss-data-result',
                         type:'error',
                     })
                 }
             }).catch(function (error) {
                 thisvue.$message({
-                    dangerouslyUseHTMLString: true,
-                    message:error + '<br/>自动获取失败',
+                    message:String(error) + '\n自动获取失败',
                     type:'error',
                 })
             });

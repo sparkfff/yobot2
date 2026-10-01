@@ -11,6 +11,7 @@ from urllib.parse import urljoin
 from aiocqhttp.api import Api
 from apscheduler.triggers.cron import CronTrigger
 
+from ...permissions import can_manage_group_command
 from ...ybdata import Clan_group, Clan_member, User
 from ..exception import ClanBattleError, InputError, GroupNotExist
 from ..util import atqq
@@ -304,6 +305,8 @@ def execute(self, match_num, ctx):
 			elif b == '出刀' or b == '申请' or b == '申请出刀':
 				msg =  self.cancel_blade(group_id, user_id)
 			elif b == '出刀all':
+				if not can_manage_group_command(ctx, self.setting):
+					return '只有本群管理员或主人可取消全部出刀'
 				msg =  self.cancel_blade(group_id, user_id, cancel_type=0)
 			elif b == '报伤害':
 				msg =  self.report_hurt(0, 0, group_id, user_id, 1)
@@ -384,9 +387,8 @@ def execute(self, match_num, ctx):
 			membership = Clan_member.get_or_create(group_id = group_id, qqid = user_id)[0]
 			user.nickname = nickname
 			user.clan_group_id = group_id
-			if user.authority_group >= 10:
-				user.authority_group = (100 if ctx['sender']['role'] == 'member' else 10)					
-				membership.role = user.authority_group
+			# Keep clan privileges in this membership, independently of other groups.
+			membership.role = 10 if ctx['sender']['role'] in ('owner', 'admin') else 100
 			user.save()
 			membership.save()
 			_logger.info('群聊 成功 {} {} {}'.format(user_id, group_id, cmd))
@@ -400,7 +402,7 @@ def execute(self, match_num, ctx):
 		if cmd != "重置进度":
 			return
 		try:
-			if (ctx['sender']['role'] not in ['owner', 'admin']) and (ctx['user_id'] not in self.setting['super-admin']):
+			if not can_manage_group_command(ctx, self.setting):
 				return '只有管理员或主人可使用重置进度功能'
 			available_empty_battle_id = self._get_available_empty_battle_id(group_id)
 			group = self.get_clan_group(group_id=group_id)

@@ -2,6 +2,7 @@ aiocqhttp==1.4.3
 aiohttp==3.7.4
 APScheduler==3.7.0
 expiringdict==1.2.1
+httpx==0.27.2
 Jinja2==3.1.2
 nonebot==1.9.1
 peewee==3.14.1

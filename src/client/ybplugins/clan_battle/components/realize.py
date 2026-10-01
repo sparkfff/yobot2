@@ -13,7 +13,9 @@ from io import BytesIO
 from PIL import Image, ImageFont, ImageDraw
 from typing import Any, Dict, List, Optional, Union, Tuple
 
-from .handler import SubscribeHandler
+from .handler import ChallengeHandler, SubscribeHandler
+from .challenge_state import ChallengeState
+from .battle_state import after_commit, atomic_battle_operation, count_blades, validate_boss_number
 
 from ..typing import ClanBattleReport, Groupid, Pcr_date, QQid
 from ...web_util import async_cached_func
@@ -48,9 +50,23 @@ def text_2_pic(self, text:string, weight:int, height:int, bg_color:Tuple, text_c
 	return f"[CQ:image,file={base64_str}]"
 
 def future_operation(self, group, msg):
-	self._boss_status[group.group_id].set_result((self._boss_data_dict(group), group.boss_cycle, msg))
-	del self._boss_status[group.group_id]
-	self._boss_status[group.group_id] = asyncio.get_event_loop().create_future()
+    payload = (self._boss_data_dict(group), group.boss_cycle, msg)
+    def publish():
+        previous = self._boss_status.get(group.group_id)
+        if previous is not None and not previous.done():
+            previous.set_result(payload)
+        self._boss_status[group.group_id] = asyncio.get_event_loop().create_future()
+    after_commit(publish)
+
+
+def send_group_notification(self, group_id, message):
+    async def send():
+        try:
+            await self.api.send_group_msg(
+                self_id=who_am_i(group_id), group_id=group_id, message=message)
+        except Exception:
+            _logger.exception('会战通知发送失败，群%s', group_id)
+    after_commit(lambda: asyncio.ensure_future(send()))
 
 #获取公会数据实例，确保每次获取的都是同一个
 def get_clan_group(self, group_id):
@@ -104,7 +120,7 @@ async def _update_group_list_async(self):
 		group:Clan_group = get_clan_group(self, group_info['group_id'],)
 		if group is None : continue
 		group.group_name = group_info['group_name']
-		group.save()
+		group.save(only=[Clan_group.group_name])
 	return True
 
 #获取群成员列表
@@ -128,9 +144,9 @@ async def _update_all_group_members_async(self, group_id):
 		membership = Clan_member.get_or_create(group_id = group_id, qqid = member['user_id'])[0]
 		user.nickname = member.get('card') or member['nickname']
 		user.clan_group_id = group_id
+		membership.role = (100 if member['role'] == 'member' else 10)
 		if user.authority_group >= 10:
-			user.authority_group = (100 if member['role'] == 'member' else 10)
-			membership.role = user.authority_group
+			user.authority_group = membership.role
 		user.save()
 		membership.save()
 
@@ -264,6 +280,7 @@ async def bind_group(self, group_id:Groupid, qqid:QQid, nickname:str):
 	return membership
 
 #删除成员
+@atomic_battle_operation
 def drop_member(self, group_id: Groupid, member_list: List[QQid]):
 	"""
 	删除公会里的成员（一般在面板里操作，可同时删除多个）
@@ -289,6 +306,7 @@ def drop_member(self, group_id: Groupid, member_list: List[QQid]):
 	return delete_count
 
 #修改boss状态
+@atomic_battle_operation
 def modify(self, group_id: Groupid, cycle=None, bossData=None):
 	"""
 	在调用此函数之前，要先检查操作者权限。
@@ -332,6 +350,7 @@ def modify(self, group_id: Groupid, cycle=None, bossData=None):
 	return msg
 
 #修改服务器
+@atomic_battle_operation
 def change_game_server(self, group_id: Groupid, game_server):
 	"""
 	在调用此函数之前，要先检查操作者权限。
@@ -368,112 +387,14 @@ def get_data_slot_record_count(self, group_id: Groupid):
 	return counts
 
 #清空会战数据记录档案
-def clear_data_slot(self, group_id: Groupid, battle_id: Optional[int] = None):
-	"""
-	清空选择的档案并重置boss状态
-	挑战数据应进行备份和确认
-	在调用此函数之前，要先检查操作者权限。
-
-	Args:
-		group_id: QQ群号
-		battle_id: 选择的档案号
-	"""
-	group:Clan_group = get_clan_group(self, group_id)
-	if group is None:
-		raise GroupNotExist
-
-	now_cycle_boss_health = {}
-	level = self._level_by_cycle(1, group.game_server)
-	for boss_num, health in enumerate(self.bossinfo[group.game_server][level]):
-		now_cycle_boss_health[boss_num+1] = health
-	next_cycle_boss_health = {}
-	level = self._level_by_cycle(2, group.game_server)
-	for boss_num, health in enumerate(self.bossinfo[group.game_server][level]):
-		next_cycle_boss_health[boss_num+1] = health
-
-	group.now_cycle_boss_health = json.dumps(now_cycle_boss_health)
-	group.next_cycle_boss_health = json.dumps(next_cycle_boss_health)
-	group.boss_cycle = 1
-	group.challenging_member_list = None
-	group.subscribe_list = None
-	group.challenging_start_time = 0
-
-	group.save()
-	if battle_id is None: battle_id = group.battle_id
-	Clan_challenge.delete().where(Clan_challenge.gid == group_id, Clan_challenge.bid == battle_id).execute()
-	_logger.info(f'群{group_id}的{battle_id}号存档已清空')
+def clear_data_slot(self, group_id, battle_id=None):
+    from .battle_service import clear_data_slot as clear_archive
+    return clear_archive(self, group_id, battle_id)
 
 #切换会战数据记录档案
-def switch_data_slot(self, group_id: Groupid, battle_id: int):
-	"""
-	切换到选择的档案并重置boss状态
-	挑战数据应进行备份和确认
-	在调用此函数之前，要先检查操作者权限。
-
-	Args:
-		group_id: QQ群号
-		battle_id：选择的档案号
-	"""
-	group:Clan_group = get_clan_group(self, group_id)
-	if group is None: raise GroupNotExist
-	backups:Clan_group_backups = Clan_group_backups.get_or_create(
-		group_id = group_id, 
-		battle_id = group.battle_id)[0]
-	restore:Clan_group_backups = Clan_group_backups.get_or_create(
-		group_id = group_id, 
-		battle_id = battle_id)[0]
-	
-	#备份
-	backups_group_data = {
-		"group_name": group.group_name,
-		"privacy": group.privacy,
-		"game_server": group.game_server,
-		"notification": group.notification,
-		"battle_id": group.battle_id,
-		"threshold": group.threshold,
-		"boss_cycle": group.boss_cycle,
-		"now_cycle_boss_health": group.now_cycle_boss_health,
-		"next_cycle_boss_health": group.next_cycle_boss_health,
-		"challenging_member_list": group.challenging_member_list,
-		"subscribe_list": group.subscribe_list,
-		"challenging_start_time": group.challenging_start_time,
-	}
-	backups.group_data = json.dumps(backups_group_data)
-	backups.save()
-
-	#还原
-	group.battle_id = battle_id
-	if restore.group_data: #如果有备份数据则还原
-		data:Clan_group = json.loads(restore.group_data)
-		group.group_name = data["group_name"]
-		group.privacy = data["privacy"]
-		group.game_server = data["game_server"]
-		group.notification = data["notification"]
-		group.boss_cycle = data["boss_cycle"]
-		group.now_cycle_boss_health = data["now_cycle_boss_health"]
-		group.next_cycle_boss_health = data["next_cycle_boss_health"]
-		group.challenging_member_list = data["challenging_member_list"]
-		group.subscribe_list = data["subscribe_list"]
-		group.challenging_start_time = data["challenging_start_time"]
-	else:	#没有备份数据则新建
-		now_cycle_boss_health = {}
-		level = self._level_by_cycle(1, group.game_server)
-		for boss_num, health in enumerate(self.bossinfo[group.game_server][level]):
-			now_cycle_boss_health[boss_num+1] = health
-		next_cycle_boss_health = {}
-		level = self._level_by_cycle(2, group.game_server)
-		for boss_num, health in enumerate(self.bossinfo[group.game_server][level]):
-			next_cycle_boss_health[boss_num+1] = health
-		
-		group.now_cycle_boss_health = json.dumps(now_cycle_boss_health)
-		group.next_cycle_boss_health = json.dumps(next_cycle_boss_health)
-		group.boss_cycle = 1
-		group.challenging_member_list = None
-		group.subscribe_list = None
-		group.challenging_start_time = 0
-
-	group.save()
-	_logger.info(f'群{group_id}切换至{battle_id}号存档')
+def switch_data_slot(self, group_id, battle_id):
+    from .battle_service import switch_data_slot as switch_archive
+    return switch_archive(self, group_id, battle_id)
 
 def _get_available_empty_battle_id(self, group_id: int) -> int:
 	"""
@@ -551,233 +472,19 @@ def boss_status_summary(self, group_id:Groupid) -> str:
 
 
 #报刀
-def challenge(self,
-				group_id: Groupid,
-				qqid: QQid,
-				defeat: bool,
-				damage = 0,
-				behalfed:QQid = None,
-				is_continue = False,
-				*,
-				boss_num = None,
-				previous_day = False,
-				) :
-	"""
-	记录对boss造成的伤害
-
-	Args:
-		group_id: QQ群号
-		qqid: 发出记录伤害请求的成员的QQ号（可能是代刀）
-		defeat: 是否是尾刀
-		damage: 对boss造成的伤害
-		behalfed: 真正造成伤害的成员的QQ号
-		previous_day: 是否是昨天出的刀
-	"""
-	if (not defeat) and (damage is None): raise InputError('未击败boss需要提供伤害值')
-	if (not defeat) and (damage < 0): raise InputError('伤害不可以是负数')
-
-	behalf = None
-	#此处往下qqid定义变更为真正造成伤害的成员的QQ号，behalf为代刀人QQ号
-	if behalfed is not None:
-		behalfed = int(behalfed)
-		behalf = qqid
-		qqid = behalfed
-	if qqid == behalf: behalf = None
-
-	membership = Clan_member.get_or_none(group_id=group_id, qqid=qqid)
-	if membership is None: raise UserNotInGroup
-
-	#若已申请出刀且指定报刀boss，优先选择指定报刀boss
-	if boss_num and self.check_blade(group_id, qqid):
-		self.cancel_blade(group_id, qqid, send_web = False)
-	#若已申请出刀未指定报刀boss，自动选择申请出刀的boss
-	if not boss_num and self.check_blade(group_id, qqid):
-		boss_num = self.get_in_boss_num(group_id, qqid)
-
-	if not boss_num:
-		raise GroupError('又不申请出刀又不说打哪个王，报啥子刀啊 (╯‵□′)╯︵┻━┻')
-	if not self.check_blade(group_id, qqid):
-		if behalf:
-			self.apply_for_challenge(is_continue, group_id, behalf, boss_num, qqid, False)
-		else:
-			self.apply_for_challenge(is_continue, group_id, qqid, boss_num, behalf, False)
-
-	group:Clan_group = get_clan_group(self, group_id)
-	if group is None: raise GroupNotExist
-
-	boss_num = str(boss_num)
-	boss_cycle = group.boss_cycle
-	challenging_member_list = safe_load_json(group.challenging_member_list, {})
-	now_cycle_boss_health = safe_load_json(group.now_cycle_boss_health, {})
-	next_cycle_boss_health = safe_load_json(group.next_cycle_boss_health, {})
-	real_cycle_boss_health = now_cycle_boss_health
-	is_continue = is_continue or (boss_num in challenging_member_list and challenging_member_list[boss_num][str(qqid)]['is_continue'] or False)
-	if now_cycle_boss_health[boss_num] == 0 and next_cycle_boss_health[boss_num] != 0:
-		boss_cycle += 1
-		real_cycle_boss_health = next_cycle_boss_health
-	elif now_cycle_boss_health[boss_num] == 0 and next_cycle_boss_health[boss_num] == 0: 
-		raise InputError('只能挑战2个周目内的同个boss')
-	if (not defeat) and (damage >= real_cycle_boss_health[boss_num]):
-		raise InputError('伤害超出剩余血量，如击败请使用尾刀')
-	# if damage == 0:
-	# 	damage = challenging_member_list[boss_num][str(qqid)]['damage']
-
-	d, t = pcr_datetime(area = group.game_server)
-	if previous_day:
-		today_count = Clan_challenge.select().where(
-			Clan_challenge.gid == group_id,
-			Clan_challenge.bid == group.battle_id,
-			Clan_challenge.challenge_pcrdate == d,
-		).count()
-
-		if today_count != 0: raise GroupError('今日报刀记录不为空，无法将记录添加到昨日')
-		d -= 1
-		t += 86400
-
-	challenges = Clan_challenge.select().where(
-		Clan_challenge.gid == group_id,
-		Clan_challenge.qqid == qqid,
-		Clan_challenge.bid == group.battle_id,
-		Clan_challenge.challenge_pcrdate == d,
-	).order_by(Clan_challenge.cid)
-
-	challenges = list(challenges)
-	finished = sum(bool(c.boss_health_remain or c.is_continue) for c in challenges)
-	if finished >= 3:
-		if previous_day: raise InputError('昨日上报次数已达到3次')
-		raise InputError('今日上报次数已达到3次')
-	#出了多少刀补偿
-	all_cont_blade = sum(bool(c.is_continue) for c in challenges)
-	#剩余多少刀补偿
-	cont_blade = len(challenges) - finished - all_cont_blade
-	if is_continue and cont_blade == 0:
-		raise GroupError('您没有补偿刀')
-
-	if defeat:
-		boss_health_remain = 0
-		challenge_damage = real_cycle_boss_health[boss_num]
-		real_cycle_boss_health[boss_num] = 0
-	else:
-		boss_health_remain = real_cycle_boss_health[boss_num] - damage
-		challenge_damage = damage
-		real_cycle_boss_health[boss_num] -= damage
-
-	challenge:Clan_challenge = Clan_challenge.create(
-		gid=group_id,
-		qqid=qqid,
-		bid=group.battle_id,
-		challenge_pcrdate=d,
-		challenge_pcrtime=t,
-		boss_cycle=boss_cycle,
-		boss_num=boss_num,
-		boss_health_remain=boss_health_remain,
-		challenge_damage=challenge_damage,
-		is_continue=is_continue,
-		behalf=behalf,
-	)
-
-	if defeat:
-		all_clear = 0
-		for _, _health in now_cycle_boss_health.items():
-			if _health == 0: all_clear += 1
-		if all_clear == 5:			# 检查当前周目的boss是否已经全部击杀
-			group.boss_cycle += 1	# 进入下一周目
-			next_cycle_level = self._level_by_cycle(group.boss_cycle+1, group.game_server)
-			for _boss_num, _health in next_cycle_boss_health.items():# 血量数据挪移
-				now_cycle_boss_health[_boss_num] = _health
-				if _health == 0: subscribe_remind(self, group_id, _boss_num)# 如果挪过来的血量为0，则发送预约提醒
-			for boss_num_, health_ in enumerate(self.bossinfo[group.game_server][next_cycle_level]):# 获取新血量数据放到下周目
-				next_cycle_boss_health[str(boss_num_+1)] = health_
-		else: real_cycle_boss_health[boss_num] = 0
-
-	group.now_cycle_boss_health = json.dumps(now_cycle_boss_health)
-	group.next_cycle_boss_health = json.dumps(next_cycle_boss_health)
-	challenge.save()
-	group.save()
-
-	# 出刀者若预约了该boss（无论是否击杀），出刀成功后将出刀者本人从预约列表中移除（保留其他人的预约）
-	subscribe_handler = SubscribeHandler(group=group)
-	if subscribe_handler.is_subscribed(qqid, int(boss_num)):
-		subscribe_handler.unsubscribe(qqid, int(boss_num))
-		subscribe_handler.save()
-
-	# 取消申请出刀
-	if defeat: 
-		self.take_it_of_the_tree(group_id, qqid, boss_num, 1, send_web = False)#只是通知下树而已
-		self.cancel_blade(group_id, qqid, boss_num, 2, False)
-		if check_next_boss(self, group_id, boss_num):
-			subscribe_remind(self, group_id, boss_num)
-	else:
-		try:self.cancel_blade(group_id, qqid, send_web = False)
-		except:pass
-
-	nik = self._get_nickname_by_qqid(qqid)
-	behalf_nik = behalf and f'（{self._get_nickname_by_qqid(behalf)}代）' or ''
-	if defeat:
-		# 击败boss，补偿+1，已完成刀数需分情况
-		msg = '{}{}对{}号boss造成了{:,}点伤害，击败了boss\n（今日已完成{}刀，还有补偿刀{}刀，本刀是{}）\n'.format(
-			nik, behalf_nik, boss_num, challenge_damage,
-			finished+1 if is_continue else finished,
-			cont_blade-1 if is_continue else cont_blade+1,
-			'尾余刀' if is_continue else '收尾刀')
-	else:
-		# 未击败boss，无论是补偿还是非补偿已出刀数+1，不会增加补偿数
-		msg = '{}{}对{}号boss造成了{:,}点伤害\n（今日已出完整刀{}刀，还有补偿刀{}刀，本刀是{}）\n'.format(
-			nik, behalf_nik, boss_num, challenge_damage, finished+1, cont_blade-1 if is_continue else cont_blade, '剩余刀' if is_continue else '完整刀')
-		
-	msg += '\n'.join(self.challenger_info_small(group, boss_num))
-
-	future_operation(self, group, msg)
-	return msg
+def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
+              is_continue=False, *, boss_num=None, previous_day=False):
+    from .battle_service import challenge as report
+    return report(self, group_id, qqid, defeat, damage, behalfed, is_continue,
+                  boss_num=boss_num, previous_day=previous_day)
 
 #撤销上一刀的伤害
-def undo(self, group_id: Groupid, qqid: QQid) :
-	"""
-	删除上一刀的记录
-
-	Args:
-		group_id: QQ群号
-		qqid: 发起撤销请求的成员QQ号
-	"""
-	group:Clan_group = get_clan_group(self, group_id)
-	if group is None: raise GroupNotExist
-	user:User = User.get_or_create(qqid = qqid, defaults = {'clan_group_id': group_id})[0]
-	last_challenge:Clan_challenge = self._get_group_previous_challenge(group)
-
-	if last_challenge is None: raise GroupError('本群无出刀记录')
-	if (last_challenge.qqid != qqid) and (user.authority_group >= 100): raise UserError('无权撤销')
-
-	last_num = str(last_challenge.boss_num)	#上一刀的boss_num
-	last_cycle = last_challenge.boss_cycle	#上一刀的周目数
-	level = self._level_by_cycle(last_cycle, group.game_server)#阶段
-
-	now_cycle_boss_health = safe_load_json(group.now_cycle_boss_health, {})
-	next_cycle_boss_health = safe_load_json(group.next_cycle_boss_health, {})
-	real_cycle_boss_health = now_cycle_boss_health #用来记录上一刀打的是哪个周目的boss
-
-	if last_cycle < group.boss_cycle:	# 判断被撤销的一刀是否是切换周目的一刀
-		for boss_num, health in now_cycle_boss_health.items():
-			next_cycle_boss_health[boss_num] = health
-			now_cycle_boss_health[boss_num] = 0
-		now_cycle_boss_health[last_num] = last_challenge.challenge_damage
-		group.boss_cycle = last_cycle
-	else:
-		if last_cycle != group.boss_cycle: real_cycle_boss_health = next_cycle_boss_health
-		real_cycle_boss_health[last_num] += last_challenge.challenge_damage
-		full_health = self.bossinfo[group.game_server][level][int(last_num)-1]
-		if real_cycle_boss_health[last_num] > full_health: real_cycle_boss_health[last_num] = full_health
-
-	last_challenge.delete_instance()
-	group.now_cycle_boss_health = json.dumps(now_cycle_boss_health)
-	group.next_cycle_boss_health = json.dumps(next_cycle_boss_health)
-	group.save()
-
-	nik = self._get_nickname_by_qqid(last_challenge.qqid)
-	msg = f'{nik}的出刀记录已被撤销'
-	future_operation(self, group, msg)
-	return msg
+def undo(self, group_id, qqid):
+    from .battle_service import undo as undo_report
+    return undo_report(self, group_id, qqid)
 
 #预约x/预约表
+@atomic_battle_operation
 def subscribe(self, group_id:Groupid, qqid:QQid, msg, note):
 	"""
 	预约某个boss或查看所有已预约的玩家
@@ -822,14 +529,11 @@ def subscribe_remind(self, group_id:Groupid, boss_num):
 		hint_message += ('：' + note) if note else ''
 		hint_message += '\n'
 	hint_message = hint_message[:-1]
-	asyncio.ensure_future(self.api.send_group_msg(
-		self_id = who_am_i(group_id), 
-		group_id = group_id,
-		message = hint_message,
-	))
+	send_group_notification(self, group_id, hint_message)
 	# 仅发送预约提醒，不清空预约列表（预约者出刀击杀boss后由challenge单独移除）
 
 #取消预约
+@atomic_battle_operation
 def subscribe_cancel(self, group_id:Groupid, boss_num, qqid = None):
 	'''
 	取消预约特定boss
@@ -872,6 +576,7 @@ def get_subscribe_list(self, group_id: Groupid):
 	return back_info
 
 #挂树
+@atomic_battle_operation
 def put_on_the_tree(self, group_id: Groupid, qqid: QQid, message=None, boss_num=False, behalfed=None):
 	"""
 	放在树上
@@ -935,21 +640,14 @@ def put_on_the_tree(self, group_id: Groupid, qqid: QQid, message=None, boss_num=
 		if str(self.get_in_boss_num(group_id, challenger)) != str(boss_num):
 			raise GroupError('你申请的王和挂树的王不一样，怎么挂树啊 (╯‵□′)╯︵┻━┻')
 
-	challenging_member_list = safe_load_json(group.challenging_member_list, {})
-	for item in challenging_member_list.values():
-		if item.get(str(challenger)) != None and item.get(str(challenger)).get('tree'):
-			raise GroupError('您已经在树上了')
-
-
-	if (behalf is None) and (behalf_is_member is None):
-		challenging_member_list[boss_num][str(challenger)]['tree'] = True
-		challenging_member_list[boss_num][str(challenger)]['msg'] = message
-	else:
-		challenging_member_list[boss_num][str(challenger)]['tree'] = True
-		challenging_member_list[boss_num][str(challenger)]['msg'] = f'[「{behalf_nickname}」代挂]' + str(message)
-
-	group.challenging_member_list = json.dumps(challenging_member_list)
-	group.save()
+	handler = ChallengeHandler(group)
+	if not ((behalf is None) and (behalf_is_member is None)):
+		message = f'[「{behalf_nickname}」代挂]' + str(message)
+	try:
+		handler.state.put_on_tree(challenger, message)
+	except ValueError:
+		raise GroupError('您已经在树上了')
+	handler.save()
 	msg = f'{challenger_nickname}挂树惹~ (っ °Д °;)っ'
 	future_operation(self, group, msg)
 	return msg
@@ -999,18 +697,14 @@ def check_tree(self, group_id: Groupid, user_id: QQid):
 	if group is None: raise GroupNotExist
 	user = User.get_or_none(qqid=user_id)
 	if user is None: raise GroupError('请先加入公会')
-	challenging_member_list = safe_load_json(group.challenging_member_list, {})
-	for i in range(1, 6):
-		try:
-			for qid in challenging_member_list[str(i)]:
-				if challenging_member_list[str(i)][qid]['tree']:
-					return i
-		except KeyError:
-			continue
+	found = ChallengeState.from_json(group.challenging_member_list).find_member(user_id)
+	if found is not None and found[1].tree:
+		return int(found[0])
 	return False
 
 
 #下树
+@atomic_battle_operation
 def take_it_of_the_tree(self, group_id: Groupid, qqid: QQid, boss_num=0, take_it_type = 0, send_web = True):
 	"""
 	把ta从树上取下来
@@ -1028,29 +722,22 @@ def take_it_of_the_tree(self, group_id: Groupid, qqid: QQid, boss_num=0, take_it
 	user = User.get_or_none(qqid=qqid)
 	if user is None: raise GroupError('请先加入公会')
 
-	challenging_member_list = safe_load_json(group.challenging_member_list, {})
+	handler = ChallengeHandler(group)
 
 	if take_it_type == 0:
 		boss_num = self.get_in_boss_num(group_id, qqid)
 		if not boss_num :
 			raise GroupError('你都没申请出刀，下啥子树啊 (╯‵□′)╯︵┻━┻')
-		qqid = str(qqid)
-		if not challenging_member_list[boss_num][qqid]['tree']:
+		if not handler.state.get(boss_num, qqid).tree:
 			raise GroupError('你都没挂树，下啥子树啊 (╯‵□′)╯︵┻━┻')
-		challenging_member_list[boss_num][qqid]['tree'] = False
-		challenging_member_list[boss_num][qqid]['msg'] = None
-		group.challenging_member_list = json.dumps(challenging_member_list)
-		group.save()
+		handler.state.take_off_tree(qqid)
+		handler.save()
 	elif take_it_type == 1:
 		notice = []
-		for challenger, info in challenging_member_list[boss_num].items():
-			if info['tree']: notice.append(atqq(challenger))
+		for challenger, info in handler.state.members(boss_num).items():
+			if info.tree: notice.append(atqq(challenger))
 		if len(notice) > 0:
-			asyncio.ensure_future(self.api.send_group_msg(
-				self_id = who_am_i(group_id), 
-				group_id = group_id,
-				message = '可以下树惹~ _(:з)∠)_\n'+'\n'.join(notice),
-			))
+			send_group_notification(self, group_id, '可以下树惹~ _(:з)∠)_\n'+'\n'.join(notice))
 	msg = '下树惹~ _(:з)∠)_'
 	if send_web: future_operation(self, group, msg)
 	return msg
@@ -1068,6 +755,7 @@ def check_next_boss(self, group_id:Groupid, boss_num):
 	return True
 
 #申请出刀
+@atomic_battle_operation
 def apply_for_challenge(self, is_continue, group_id:Groupid, qqid:QQid, boss_num, behalfed = None, send_web=True) :
 	"""
 	Args:
@@ -1077,6 +765,7 @@ def apply_for_challenge(self, is_continue, group_id:Groupid, qqid:QQid, boss_num
 		boss_num: 几王
 		behalfed: 被代刀人的qq号
 	"""
+	boss_num = validate_boss_number(boss_num)
 	group:Clan_group = get_clan_group(self, group_id)
 	if group is None:raise GroupNotExist
 
@@ -1102,34 +791,17 @@ def apply_for_challenge(self, is_continue, group_id:Groupid, qqid:QQid, boss_num
 		Clan_challenge.challenge_pcrdate == d,
 	).order_by(Clan_challenge.cid)
 	challenges = list(challenges)
-	finished = sum(bool(c.boss_health_remain or c.is_continue) for c in challenges)
-	if finished >= 3: raise GroupError('今日已出了3次完整刀')
-	#收尾且不是补偿
-	tail_blade = sum(bool(c.boss_health_remain == 0 and (not c.is_continue)) for c in challenges)
-	#出了多少刀补偿
-	all_cont_blade = sum(bool(c.is_continue) for c in challenges)
-	#剩余多少刀补偿
-	cont_blade = len(challenges) - finished - all_cont_blade
-	if is_continue and cont_blade == 0:
+	counts = count_blades(challenges)
+	if counts.finished >= 3: raise GroupError('今日已出了3次完整刀')
+	if is_continue and counts.compensation <= 0:
 		raise GroupError('您没有补偿刀')
-	if finished + tail_blade - all_cont_blade >= 3 and cont_blade != 0:
-		is_continue = True
+	is_continue = counts.choose_compensation(is_continue)
 	
 	nik = self._get_nickname_by_qqid(challenger)
 	info = [f'{nik}已开始挑战boss，剩最后几秒的时候记得暂停报伤害哦~']
-	challenging_list = safe_load_json(group.challenging_member_list, {})
-	if boss_num not in challenging_list:
-		challenging_list[boss_num] = {}
-	challenging_list[boss_num][challenger] = {
-		'is_continue' : is_continue, 
-		'behalf' : behalf, 
-		's' : 0,
-		'damage' : 0,
-		'tree' : False,
-		'msg' : None,
-	}
-	group.challenging_member_list = json.dumps(challenging_list)
-	group.save()
+	handler = ChallengeHandler(group)
+	handler.state.apply(boss_num, challenger, is_continue, behalf)
+	handler.save()
 
 	self.challenger_info_small(group, boss_num, info)
 	info = '\n'.join(info)
@@ -1137,6 +809,7 @@ def apply_for_challenge(self, is_continue, group_id:Groupid, qqid:QQid, boss_num
 	return info
 
 #取消申请出刀
+@atomic_battle_operation
 def cancel_blade(self, group_id: Groupid, qqid: QQid, boss_num=0, cancel_type=1, send_web=True):
 	"""
 	Args:
@@ -1150,43 +823,36 @@ def cancel_blade(self, group_id: Groupid, qqid: QQid, boss_num=0, cancel_type=1,
 	msg = '？'
 	if group.challenging_member_list == None:
 		raise GroupError('目前没有人正在挑战这个boss')
+	handler = ChallengeHandler(group)
 	if cancel_type == 0 :
-		group.challenging_member_list = None
+		handler.state = ChallengeState()
+		handler.save(empty_as_none=True)
 		msg = '已取消所有'
 	elif cancel_type == 1 :
 		_boss_num = self.get_in_boss_num(group_id, qqid)
 		if not _boss_num : raise GroupError('你都没申请出刀，取啥子消啊 (╯‵□′)╯︵┻━┻')
-		challenging_list = safe_load_json(group.challenging_member_list, {})
-		del challenging_list[_boss_num][str(qqid)]
-		if len(challenging_list[_boss_num]) == 0: del challenging_list[_boss_num]
-		if len(challenging_list) == 0: group.challenging_member_list = None
-		else: group.challenging_member_list = json.dumps(challenging_list)
+		handler.state.remove_member(qqid)
+		handler.save(empty_as_none=True)
 		msg = '取消申请出刀成功'
 	elif boss_num != 0 and cancel_type == 2:
-		challenging_list = safe_load_json(group.challenging_member_list, {})
-		if boss_num not in challenging_list: return
-		del challenging_list[boss_num]
-		group.challenging_member_list = json.dumps(challenging_list)
+		if str(boss_num) not in handler.state.applications: return
+		handler.state.remove_boss(boss_num)
+		handler.save()
 
 	if send_web: future_operation(self, group, msg)
-	group.save()
 	return msg
 
 #检查是否已申请出刀
 def check_blade(self, group_id: Groupid, qqid: QQid):
 	"""
-	返回False即已申请出刀，返回True为未申请出刀
+	返回True即已申请出刀，返回False为未申请出刀
 	Args:
 		group_id: QQ群号
 		qqid: 需要进行操作的QQ号
 	"""
 	group:Clan_group = get_clan_group(self, group_id)
 	if group is None: raise GroupNotExist
-	challenging_list = safe_load_json(group.challenging_member_list, {})
-	for _, infos in challenging_list.items():
-		for challenger in infos.keys():
-			if str(qqid) == challenger : return True
-	return False
+	return ChallengeState.from_json(group.challenging_member_list).find_member(qqid) is not None
 
 #获取boss_num
 def get_in_boss_num(self, group_id, qqid):
@@ -1197,14 +863,12 @@ def get_in_boss_num(self, group_id, qqid):
 		qqid: 需要进行操作的QQ号
 	"""
 	group:Clan_group = get_clan_group(self, group_id)
-	challenging_list = safe_load_json(group.challenging_member_list, {})
-	for boss_num, infos in challenging_list.items():
-		for challenger in infos.keys():
-			if str(qqid) == challenger : return boss_num
-	return False
+	found = ChallengeState.from_json(group.challenging_member_list).find_member(qqid)
+	return found[0] if found is not None else False
 
 
 #SL
+@atomic_battle_operation
 def save_slot(self, group_id: Groupid, qqid: QQid,
 				only_check: bool = False,
 				clean_flag: bool = False):
@@ -1254,6 +918,7 @@ def save_slot(self, group_id: Groupid, qqid: QQid,
 	return '已记录SL。若已申请/挂树，需重新报告。 Σ(っ °Д °;)っ'
 
 #记录伤害/清空伤害
+@atomic_battle_operation
 def report_hurt(self, s, hurt, group_id:Groupid, qqid:QQid, clean_type = 0):
 	"""
 	记录/清空出刀暂停后，成员报的伤害
@@ -1272,23 +937,18 @@ def report_hurt(self, s, hurt, group_id:Groupid, qqid:QQid, clean_type = 0):
 		raise GroupError('你都没申请出刀，报啥子伤害啊 (╯‵□′)╯︵┻━┻')
 
 	ret_msg = ''
-	challenging_member_list = safe_load_json(group.challenging_member_list, {})
-
-	str_qqid = str(qqid)
+	handler = ChallengeHandler(group)
 	if clean_type == 0:
-		challenging_member_list[boss_num][str_qqid]['s'] = s
-		challenging_member_list[boss_num][str_qqid]['damage'] = hurt
+		handler.state.report_damage(qqid, s, hurt)
 		ret_msg = '已记录伤害，小心不要手滑哦~ ♪(´▽｀)'
 	elif clean_type == 1:
-		if challenging_member_list[boss_num][str_qqid]['damage'] == 0:
+		if handler.state.get(boss_num, qqid).damage == 0:
 			ret_msg = '您还没有报伤害呢'
 		else:
-			challenging_member_list[boss_num][str_qqid]['s'] = 0
-			challenging_member_list[boss_num][str_qqid]['damage'] = 0
+			handler.state.report_damage(qqid, 0, 0)
 			ret_msg = '取消成功~'
 
-	group.challenging_member_list = json.dumps(challenging_member_list)
-	group.save()
+	handler.save()
 	return ret_msg
 
 #单个boss信息
