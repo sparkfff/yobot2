@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html lang="zh-CN" class="yobot-ui">
 
 <head>
 	<meta name='viewport' content='width=device-width, initial-scale=1' charset="utf-8" />
@@ -30,13 +31,14 @@
 		}
 	</style>
 
+{% include 'partials/ui_head.html' %}
 </head>
 
-<body>
+<body class="ui-account">
 	<div id="app">
 		<el-page-header @back="location='..'" content="用户信息"></el-page-header>
 		<template v-if="display">
-			<div style="margin: 60px 50px 0px;">
+			<div class="account-detail" style="margin: 60px 50px 0px;">
 				<el-avatar :src="'https://q1.qlogo.cn/g?b=qq&nk=' + {{user.qqid}} + '&s=640'"></el-avatar>
 				<p :hidden="edit" @click="edit=true" style="width: 200px;cursor: pointer;">用户名：[[ nickname ]]</p>
 				<p :hidden="!edit">用户名：<el-input v-model="nickname" placeholder="昵称"></el-input>
@@ -65,6 +67,7 @@
 			<p><a href="#" onClick="javascript:history.go(-1);">返回</a></p>
 		</template>
 	</div>
+{% include 'partials/ui_footer.html' %}
 </body>
 <script>
 	var vm = new Vue({

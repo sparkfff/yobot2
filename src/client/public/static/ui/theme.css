@@ -1,0 +1,317 @@
+/* Shared presentation layer. Legacy layout and component behavior stay local. */
+html.yobot-ui {
+  color-scheme: light;
+  --primary-color-1: #3568d4;
+  --primary-color-2: #eaf0ff;
+  --secondary-color-1: #3568d4;
+  --secondary-color-2: #244da6;
+  --background-color: #f4f7fc;
+  --font-color: #263650;
+  --ui-muted: #63748d;
+  --ui-border: #e2e8f2;
+  --ui-shadow: 0 6px 24px rgba(31, 55, 93, .045);
+  background: var(--background-color);
+}
+.yobot-ui body {
+  margin: 0;
+  padding: 28px 24px 0;
+  background: transparent;
+  color: var(--font-color);
+  font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  text-align: center;
+}
+.yobot-ui body *, .yobot-ui body *:not(input, textarea) {
+  box-sizing: border-box;
+  user-select: auto;
+  -webkit-user-select: auto;
+  -webkit-touch-callout: default;
+}
+.yobot-ui #app { max-width: 1320px; margin: 0 auto; }
+.yobot-ui h1 { font-size: 28px; font-weight: 650; letter-spacing: -.5px; margin: 24px 0; color: var(--font-color); }
+.yobot-ui h2, .yobot-ui h3, .yobot-ui h4 { color: var(--font-color); }
+.yobot-ui p, .yobot-ui font { color: var(--font-color); }
+.yobot-ui a { color: #3568d4; text-decoration: none; }
+.yobot-ui a:hover { color: #244da6; }
+.yobot-ui :focus-visible { outline: 3px solid #98b6f4; outline-offset: 3px; }
+.yobot-ui .el-main { overflow: visible; }
+.yobot-ui .ui-footer {
+  max-width: 1320px;
+  margin: 40px auto 0;
+  padding: 22px 0;
+  border-top: 1px solid var(--ui-border);
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: var(--ui-muted);
+  font-size: 12px;
+}
+.yobot-ui .ui-footer a { color: var(--ui-muted); }
+
+/* Navigation has one consistent order and remains reachable on narrow screens. */
+.yobot-ui .ui-clan { padding-top: 84px; }
+.yobot-ui #topToolbar {
+  top: 0;
+  height: 68px;
+  padding: 0 max(24px, calc((100vw - 1320px) / 2));
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--ui-border);
+  box-shadow: 0 2px 12px rgba(31, 55, 93, .035);
+  z-index: 100;
+}
+.yobot-ui #topToolbar::before {
+  content: "YOBOT";
+  color: #263650;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: 1.8px;
+}
+.yobot-ui #topToolbar .el-page-header { position: static; flex-shrink: 0; color: var(--ui-muted); }
+.yobot-ui #topToolbar .el-page-header__title { color: var(--ui-muted); }
+.yobot-ui #topToolbar .el-page-header__left::after { display: none; }
+.yobot-ui .el-icon-back:before { color: var(--ui-muted); }
+.yobot-ui .el-button--primary .el-icon-back:before { color: #fff; }
+.yobot-ui #topToolbar .el-menu {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+}
+.yobot-ui #topToolbar .el-menu-item {
+  float: none;
+  height: 68px;
+  line-height: 68px;
+  padding: 0 20px;
+  color: var(--ui-muted);
+  font-weight: 500;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+}
+.yobot-ui #topToolbar .el-menu-item.is-active,
+.yobot-ui #topToolbar .el-menu-item:hover,
+.yobot-ui #topToolbar .el-menu-item:focus {
+  color: #3568d4;
+  border-bottom-color: #3568d4;
+  background: #f6f9ff;
+}
+
+/* Consistent form controls, with red reserved for destructive actions. */
+.yobot-ui .el-button { border-radius: 8px; font-weight: 500; box-shadow: none; }
+.yobot-ui .el-button:not(.is-circle):not(.Service-item) { min-height: 36px; }
+.yobot-ui .el-button--default { color: #425570; border-color: #d8e1ee; background: #fff; }
+.yobot-ui .el-button--default:hover { color: #3568d4; background: #f0f5ff; border-color: #9cb7ee; }
+.yobot-ui .el-button--primary { background: #3568d4; border-color: #3568d4; color: #fff; }
+.yobot-ui .el-button--primary:hover { background: #2859be; border-color: #2859be; }
+.yobot-ui .el-button--info { color: #425570; background: #edf2f9; border-color: #e0e7f1; }
+.yobot-ui .el-button--info:hover { color: #3568d4; background: #e4edff; border-color: #b9ccf1; }
+.yobot-ui .el-button--danger { background: #cb4651; border-color: #cb4651; color: #fff; }
+.yobot-ui .el-button--success { background: #24876b; border-color: #24876b; }
+.yobot-ui .el-button.is-disabled, .yobot-ui .el-button.is-disabled:hover { color: #8b97a9; border-color: #e4e9f1; background: #f3f5f9; box-shadow: none; }
+.yobot-ui .el-input__inner, .yobot-ui .el-textarea__inner {
+  border-radius: 8px;
+  border-color: #dce4f0;
+  color: var(--font-color);
+  background: #fff;
+}
+.yobot-ui .el-input__inner:focus, .yobot-ui .el-textarea__inner:focus { border-color: #3568d4; }
+.yobot-ui .el-input__inner::placeholder, .yobot-ui .el-textarea__inner::placeholder { color: #8794a8; }
+.yobot-ui .el-form-item__label { color: #52637b; }
+.yobot-ui .el-checkbox__label, .yobot-ui .el-radio__label { color: #52637b; }
+.yobot-ui .el-dialog, .yobot-ui .el-message-box { border-radius: 16px; overflow: hidden; box-shadow: 0 20px 80px rgba(18, 40, 75, .18); }
+.yobot-ui .el-dialog { width: min(560px, calc(100vw - 32px)); max-width: calc(100vw - 32px); text-align: left; }
+.yobot-ui .el-dialog__header { padding: 24px 24px 16px; border-bottom: 1px solid #edf1f7; }
+.yobot-ui .el-dialog__title { color: #263650; font-weight: 600; }
+.yobot-ui .el-dialog__body { padding: 24px; color: #52637b; }
+.yobot-ui .el-dialog__footer { padding: 16px 24px 24px; }
+.yobot-ui .el-dialog .el-select { width: 100%; }
+.yobot-ui .el-message-box { width: min(440px, calc(100vw - 32px)); }
+.yobot-ui .el-alert { border-radius: 8px; margin: 12px 0; }
+.yobot-ui .el-collapse { border: 1px solid var(--ui-border); border-radius: 12px; overflow: hidden; }
+.yobot-ui .el-collapse-item__header { color: var(--font-color); padding: 0 20px; font-weight: 600; }
+.yobot-ui .el-collapse-item__content { padding: 20px; text-align: left; }
+
+/* Tables keep their internal scrollbars, rather than widening the page. */
+.yobot-ui .el-table { border: 1px solid var(--ui-border); border-radius: 12px; box-shadow: var(--ui-shadow); color: #425570; }
+.yobot-ui .el-table th, .yobot-ui .el-table__header { background: #f1f5fc; color: #52637b; font-weight: 600; }
+.yobot-ui .el-table td, .yobot-ui .el-table th.is-leaf { border-bottom-color: #edf1f7; }
+.yobot-ui .el-table--enable-row-transition .el-table__body td { background: #fff; }
+.yobot-ui .el-table--striped .el-table__body tr.el-table__row--striped td { background: #f8fafd; }
+.yobot-ui .el-table thead.is-group th { background: #f1f5fc; }
+.yobot-ui .el-table .sort-caret.ascending { border-bottom-color: #a2aec0; }
+.yobot-ui .el-table .sort-caret.descending { border-top-color: #a2aec0; }
+.yobot-ui .el-table .finishedRow td { background: #e8f6ef !important; color: #21725b; }
+.yobot-ui .el-table--enable-row-hover .el-table__body tr:hover > td { background: #f3f7ff; }
+.yobot-ui .el-pagination { margin: 20px 0; color: var(--ui-muted); }
+.yobot-ui .pc-box, .yobot-ui .el-table { max-width: 100%; }
+
+/* Boss cards keep original artwork while giving status and actions room. */
+.yobot-ui .clanname {
+  background: none;
+  width: auto;
+  height: auto;
+  line-height: 1.5;
+  color: #263650;
+  font-size: 28px;
+  font-weight: 650;
+  margin: 16px auto 8px !important;
+}
+.yobot-ui .clancycle {
+  display: table;
+  width: auto;
+  border: 1px solid #d7e3fb;
+  border-radius: 20px;
+  padding: 5px 16px;
+  background: #eaf1ff;
+  color: #3568d4;
+  font-size: 13px;
+  margin: 0 auto 28px !important;
+}
+.yobot-ui .ui-panel .el-main { padding: 0 !important; margin-top: 0 !important; }
+.yobot-ui .boss_info-all {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  background: none;
+  margin: 0 auto 28px;
+}
+.yobot-ui .boss_info-all::before, .yobot-ui .boss_info-all::after { display: none; }
+.yobot-ui .boss-card {
+  float: none;
+  width: auto;
+  min-width: 0;
+  padding: 22px 14px 16px;
+  margin: 0 !important;
+  background: #fff;
+  border: 1px solid var(--ui-border);
+  border-radius: 14px;
+  box-shadow: var(--ui-shadow);
+  position: relative;
+}
+.yobot-ui .boss-card > div:first-child img { width: 96px; height: 96px; object-fit: contain; margin: 0 auto 12px; }
+.yobot-ui .boss-card > div { font-size: 13px; }
+.yobot-ui .boss-card .boss-title { color: #263650; font-size: 14px; min-height: 44px; margin-bottom: 12px; }
+.yobot-ui .boss_info-single_health_box { height: 22px; border: 0; border-radius: 7px; background: #f0f3f9; margin: 4px 0 8px; float: none; overflow: hidden; }
+.yobot-ui .boss_info-single_health { height: 22px; line-height: 22px; background: #3a9c89; border-radius: 7px; color: #fff; font-size: 12px; font-weight: 600; }
+.yobot-ui .boss_info-single_challenger { height: auto; padding: 6px 10px; border: 1px solid #e2e9f5; border-radius: 7px; background: #f1f5fc; color: #52637b; font-size: 12px; line-height: 20px; margin: 12px 0; cursor: pointer; }
+.yobot-ui .challengers_window { background: #344a6b; color: #fff; border: 0; box-shadow: 0 8px 24px rgba(18,40,75,.18); width: 240px; max-width: calc(100vw - 40px); transform: none; left: 0; padding: 12px; border-radius: 10px; }
+.yobot-ui .small-buttons-row { gap: 6px; margin-bottom: 6px; }
+.yobot-ui .small-buttons-row > div { flex: 1; }
+.yobot-ui .small-buttons-row > .el-button,
+.yobot-ui .small-buttons-row > div > .el-button { width: 100%; padding: 9px 8px; }
+.yobot-ui .buttons-row { gap: 12px; flex-wrap: wrap; justify-content: center; margin: 16px 0 24px !important; }
+.yobot-ui .buttons-row > div { min-width: 110px; }
+.yobot-ui .buttons-row .el-button { height: auto; }
+.yobot-ui .ui-panel .report-button { background: #3568d4; border-color: #3568d4; color: #fff; }
+.yobot-ui .ui-panel .report-button:hover { background: #2859be; }
+.yobot-ui .mobile-boss-card { margin: 0 0 14px !important; padding: 16px; border: 1px solid var(--ui-border); border-radius: 14px; background: #fff !important; box-shadow: var(--ui-shadow); }
+.yobot-ui .mobile-boss-card > .el-col:first-child { width: 25%; }
+.yobot-ui .mobile-boss-card > .el-col:first-child img { width: 72px !important; height: 72px !important; margin: 4px 0 !important; }
+.yobot-ui .mobile-boss-card > .el-col:nth-child(2) { width: 72% !important; margin-right: 0 !important; height: auto !important; min-height: 112px; }
+.yobot-ui .mobile-boss-card .boss_info-single_challenger { width: auto !important; margin: 8px 0 !important; height: auto !important; }
+.yobot-ui .phone_spread { position: static; margin: 0; clear: both; }
+.yobot-ui .phone_control { height: auto; margin-top: 12px; }
+
+/* Landing, sign-in and account pages use the same calm surfaces. */
+.yobot-ui .header { background: transparent; color: #263650; margin: 0 auto; }
+.yobot-ui .inner-header { height: auto; min-height: 130px; }
+.yobot-ui .header h1 { color: #263650; font-size: 32px; font-weight: 650; letter-spacing: -.5px; margin: 24px; }
+.yobot-ui .waves { display: none; }
+.yobot-ui .ui-account #app, .yobot-ui .ui-auth #app {
+  background: #fff;
+  border: 1px solid var(--ui-border);
+  border-radius: 18px;
+  box-shadow: var(--ui-shadow);
+  padding: 32px;
+  max-width: 680px;
+}
+.yobot-ui .ui-auth #app { max-width: 420px; margin-top: 8px !important; }
+.yobot-ui .ui-auth #app .container { width: 100%; }
+.yobot-ui .ui-auth .el-form { max-width: 100%; }
+.yobot-ui .ui-account .el-avatar { border: 4px solid #edf3ff; }
+.yobot-ui .ui-account .el-button { margin: 6px; }
+.yobot-ui .ui-settings #app { max-width: 1020px; }
+.yobot-ui .ui-settings #app > .el-form, .yobot-ui .ui-settings #app > p,
+.yobot-ui .ui-settings #app > .el-collapse, .yobot-ui .ui-settings #app > .ui-section {
+  background: #fff;
+  padding: 24px;
+  border: 1px solid var(--ui-border);
+  border-radius: 14px;
+  box-shadow: var(--ui-shadow);
+  margin-bottom: 20px;
+}
+.yobot-ui .ui-settings #app > p:empty { display: none; }
+.yobot-ui .ui-settings #app > .el-form { text-align: left; }
+.yobot-ui .ui-settings table { display: block; overflow-x: auto; max-width: 100%; border-spacing: 8px; }
+.yobot-ui .ui-settings .boss-fetch-button { background: #3568d4 !important; color: #fff; border-color: #3568d4; font-size: 14px !important; margin-bottom: 12px; }
+.yobot-ui .ui-settings .el-checkbox { white-space: normal; }
+.yobot-ui .ui-statistics .lib { margin: 8px; }
+.yobot-ui .Service-item, .yobot-ui .Service-item:hover {
+  padding: 24px 16px;
+  width: 240px;
+  max-width: 100%;
+  min-height: 280px;
+  height: auto;
+  background: #fff;
+  border: 1px solid var(--ui-border);
+  border-radius: 14px;
+  box-shadow: var(--ui-shadow);
+  transform: none;
+}
+.yobot-ui .Service-item:hover:not(.is-disabled) { border-color: #9bb5eb; }
+.yobot-ui .Service-item .item-image, .yobot-ui .Service-item:hover .item-image { width: 88px; height: 88px; line-height: 88px; margin: 0 auto; }
+.yobot-ui .Service-item .item-title, .yobot-ui .Service-item:hover .item-title { padding: 14px 0 7px; font-weight: 600; }
+.yobot-ui .Service-item .item-text { color: var(--ui-muted); }
+.yobot-ui .Service-item .item-link { display: block; color: #3568d4; margin: 12px 0 0; }
+.yobot-ui .Service-item.is-disabled .item-link { color: #8b97a9; }
+.yobot-ui .ui-statistics #app + h2 { margin-top: 28px; }
+.yobot-ui .ui-home > .el-footer { position: static !important; transform: none !important; display: block; margin-top: 24px; }
+.yobot-ui .ui-chart { padding-top: 28px; }
+.yobot-ui .ui-chart #app { margin: 0 auto !important; }
+.yobot-ui .ui-chart .el-page-header { position: static; color: var(--ui-muted); }
+.yobot-ui .ui-chart .el-tabs { margin-top: 24px; }
+.yobot-ui .ui-chart .chart-row { display: flex; height: 450px; }
+.yobot-ui .ui-chart .chart-row > div { min-width: 0; }
+.yobot-ui .ui-chart .chart-row > div > div[id] { background: #fff; border-radius: 12px; box-shadow: var(--ui-shadow); }
+.yobot-ui .ui-chart .el-date-editor--daterange { max-width: 100%; }
+.yobot-ui .ui-admin .el-form--inline { padding: 20px; background: #fff; border: 1px solid var(--ui-border); border-radius: 12px; margin-bottom: 20px; text-align: left; }
+.yobot-ui .ui-admin .el-page-header { margin: 0 0 24px; color: var(--ui-muted); }
+
+@media (max-width: 1100px) {
+  .yobot-ui .boss_info-all { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .yobot-ui #topToolbar { gap: 12px; }
+  .yobot-ui #topToolbar .el-menu-item { padding: 0 14px; }
+}
+@media (max-width: 767px) {
+  .yobot-ui body { padding: 20px 14px 0; }
+  .yobot-ui .ui-clan { padding-top: 120px; }
+  .yobot-ui .ui-chart { padding-top: 24px; }
+  .yobot-ui #topToolbar { height: 106px; padding: 12px 16px 0; flex-wrap: wrap; gap: 0; justify-content: space-between; align-content: space-between; }
+  .yobot-ui #topToolbar::before { font-size: 16px; }
+  .yobot-ui #topToolbar .el-page-header { font-size: 12px; }
+  .yobot-ui #topToolbar .el-menu { flex: 0 0 100%; justify-content: space-between; margin-left: 0; }
+  .yobot-ui #topToolbar .el-menu-item { padding: 0 9px; height: 52px; line-height: 52px; font-size: 13px; }
+  .yobot-ui h1, .yobot-ui .clanname { font-size: 23px; }
+  .yobot-ui .ui-footer { margin-top: 24px; gap: 10px; }
+  .yobot-ui .ui-account #app, .yobot-ui .ui-auth #app { padding: 24px 18px; }
+  .yobot-ui .ui-account .account-detail { margin: 24px 0 !important; }
+  .yobot-ui .ui-settings #app > .el-form, .yobot-ui .ui-settings #app > p { padding: 20px 14px; }
+  .yobot-ui .ui-settings .el-form-item__label { float: none; display: block; width: auto !important; text-align: left; }
+  .yobot-ui .ui-settings .el-form-item__content { margin-left: 0 !important; }
+  .yobot-ui .ui-chart .chart-row { height: auto !important; flex-direction: column; }
+  .yobot-ui .ui-chart .chart-row > div { width: 100% !important; }
+  .yobot-ui .ui-chart .chart-row > div > div[id] { height: 340px !important; padding: 12px !important; margin: 8px 0 !important; }
+  .yobot-ui .el-dialog__body { padding: 20px 16px; }
+  .yobot-ui .el-dialog .el-form-item__label { float: none; display: block; text-align: left; }
+  .yobot-ui .el-dialog .el-form-item__content { margin-left: 0 !important; }
+  .yobot-ui .el-dialog__header, .yobot-ui .el-dialog__footer { padding-left: 16px; padding-right: 16px; }
+  .yobot-ui .Service-item, .yobot-ui .Service-item:hover { width: 280px; }
+  .yobot-ui .el-pagination { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yobot-ui *, .yobot-ui *::before, .yobot-ui *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

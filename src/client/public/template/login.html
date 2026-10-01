@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html lang="zh-CN" class="yobot-ui">
 
 <head>
     <meta name='viewport' content='width=device-width, initial-scale=1' charset="utf-8" />
@@ -8,7 +9,7 @@
     <script src="{{ url_for('yobot_static', filename='password.js') }}"></script>
     <link rel="stylesheet" href="/yobot-depencency/element-ui@2.13.0/lib/theme-chalk/index.css">
     <script src="/yobot-depencency/jquery@2.1.1/jquery.min.js"></script>
-    <script src="/yobot-depencency/yocool@final/princessadventure/yocool.js"></script>
+
     <link rel="stylesheet" href="/yobot-depencency/yocool@final/princessadventure/style.css">
     <style>
         html {
@@ -29,9 +30,10 @@
             margin: -30px 0 -30px;
         }
     </style>
+{% include 'partials/ui_head.html' %}
 </head>
 
-<body>
+<body class="ui-auth">
     <div class="header">
         <div class="inner-header flex">
             <h1>会战系统登录</h1>
@@ -132,6 +134,7 @@
             }
         })
     </script>
+{% include 'partials/ui_footer.html' %}
 </body>
 
 </html>

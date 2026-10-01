@@ -1,15 +1,17 @@
 <!DOCTYPE html>
+<html lang="zh-CN" class="yobot-ui">
 
 <head>
     <title>总统计</title>
-    <meta name='viewport' content='width=1485' charset="utf-8" />
+    <meta name='viewport' content='width=device-width, initial-scale=1' charset="utf-8" />
     <script src="/yobot-depencency/vue@2.6.11/dist/vue.min.js"></script>
     <script src="/yobot-depencency/axios@0.19.2/dist/axios.min.js"></script>
     <script src="/yobot-depencency/element-ui@2.13.0/lib/index.js"></script>
     <link rel="stylesheet" href="/yobot-depencency/element-ui@2.13.0/lib/theme-chalk/index.css">
+{% include 'partials/ui_head.html' %}
 </head>
 
-<body>
+<body class="ui-clan ui-chart">
     <div id="app">
         <el-button icon="el-icon-back" @click="location='..'"></el-button>
         <el-table :data="tableData">
@@ -31,6 +33,7 @@
 
         </el-table>
     </div>
+{% include 'partials/ui_footer.html' %}
 </body>
 <script>
     var DMG_TYPE = ['普通','剩余刀','尾刀','余尾刀']
