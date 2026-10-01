@@ -215,6 +215,35 @@ html.yobot-ui {
 .yobot-ui .buttons-row { gap: 12px; flex-wrap: wrap; justify-content: center; margin: 16px 0 24px !important; }
 .yobot-ui .buttons-row > div { min-width: 110px; }
 .yobot-ui .buttons-row .el-button { height: auto; }
+.yobot-ui .ui-panel .panel-actions {
+  display: grid;
+  grid-template-columns: 120px repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 18px;
+  max-width: 980px;
+  margin: 20px auto !important;
+  padding: 22px 24px;
+  border: 1px solid var(--ui-border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .85);
+  box-shadow: 0 4px 18px rgba(33, 48, 91, .04);
+}
+.yobot-ui .ui-panel .panel-actions::before {
+  content: attr(aria-label); text-align: left; color: #52617e;
+  font-size: 13px; font-weight: 650; letter-spacing: .5px;
+}
+.yobot-ui .ui-panel .panel-actions-status { grid-template-columns: 120px repeat(4, minmax(0, 1fr)); }
+.yobot-ui .ui-panel .panel-actions-reservation { grid-template-columns: 120px repeat(2, minmax(0, 1fr)); }
+.yobot-ui .ui-panel .panel-actions > div { min-width: 0; }
+.yobot-ui .ui-panel .panel-actions > div > .el-button,
+.yobot-ui .ui-panel .panel-actions > div > a > .el-button {
+  width: 100% !important; min-height: 44px; margin: 0; padding: 12px 16px;
+}
+@media (max-width: 900px) {
+  .yobot-ui .ui-panel .panel-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 20px; }
+  .yobot-ui .ui-panel .panel-actions::before { grid-column: 1 / -1; }
+}
+
 .yobot-ui .ui-panel .report-button { background: linear-gradient(115deg, #4f46e5, #386be3); border-color: #4f46e5; color: #fff; }
 .yobot-ui .ui-panel .report-button:hover { background: #2859be; }
 .yobot-ui .mobile-boss-card { margin: 0 0 14px !important; padding: 16px; border: 1px solid var(--ui-border); border-radius: 14px; background: #fff !important; box-shadow: var(--ui-shadow); }

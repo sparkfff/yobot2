@@ -165,7 +165,7 @@
 				</el-row>
 			</el-main>
 			{% if is_member -%}
-			<div class="buttons-row" style="margin: 20px;">
+			<div class="buttons-row panel-actions panel-actions-management" role="group" aria-label="会战管理">
 				<div>
 					<el-button type="info" size="small" @click="recordUndo">撤销报刀</el-button>
 				</div>
@@ -207,7 +207,7 @@
 					</a>
 				</div>
 			</div>
-			<div class="buttons-row" style="margin: 20px;">
+			<div class="buttons-row panel-actions panel-actions-status" role="group" aria-label="出刀状态">
 				<div>
 					<el-button type="info" size="small" @click="treeDialog=true">挂树</el-button>
 					<el-dialog title="挂树" :visible.sync="treeDialog">
@@ -291,7 +291,7 @@
 					</el-dialog>
 				</div>
 			</div>
-			<div class="buttons-row" style="margin: 20px;">
+			<div class="buttons-row panel-actions panel-actions-reservation" role="group" aria-label="Boss 预约">
 				<div>
 					<el-button type="info" size="small" @click="subscribeFormVisible = true" style="width: auto;">预约boss</el-button>
 					<el-dialog title="预约boss" :visible.sync="subscribeFormVisible">
@@ -439,7 +439,7 @@
 				</el-row>
 
 				{% if is_member -%}
-				<div class="buttons-row" style="margin-bottom: 25px;">
+				<div class="buttons-row panel-actions panel-actions-management" role="group" aria-label="会战管理">
 					<div>
 						<el-button type="info" size="small" @click="recordUndo">撤销报刀</el-button>
 					</div>
@@ -484,7 +484,7 @@
 						</a>
 					</div>
 				</div>
-				<div class="buttons-row" style="margin-bottom: 25px;">
+				<div class="buttons-row panel-actions panel-actions-status" role="group" aria-label="出刀状态">
 					<div>
 						<el-button type="info" size="small" @click="treeDialog=true">挂树</el-button>
 						<el-dialog title="挂树" :visible.sync="treeDialog">
@@ -568,7 +568,7 @@
 						</el-dialog>
 					</div>
 				</div>
-				<div class="buttons-row" style="margin-bottom: 20px;">
+				<div class="buttons-row panel-actions panel-actions-reservation" role="group" aria-label="Boss 预约">
 					<div>
 						<el-button type="info" size="small" @click="subscribeFormVisible = true" style="width: auto;">预约boss</el-button>
 						<el-dialog title="预约boss" :visible.sync="subscribeFormVisible">
