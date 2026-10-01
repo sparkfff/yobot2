@@ -90,15 +90,37 @@ class PerformanceTests(unittest.IsolatedAsyncioTestCase):
 
     def test_zero_override_survives_persistence_and_decimal_math(self):
         first = self.record()
-        self.record(boss_health_remain=0, challenge_damage=1)
+        second = self.record(boss_health_remain=0, challenge_damage=1)
         data = self.report()
-        data['config']['stages'][0]['weight'] = '0.3333'
+        data['config']['overrides'][str(second.cid)] = '0.3333'
         data['config']['overrides'][str(first.cid)] = '0'
         self.save(data)
         result = self.report()
         self.assertEqual(result['records'][0]['weight'], '0')
         self.assertEqual(result['ranking'][0]['score'], .16665)
         self.assertEqual(performance.weight('0'), Decimal(0))
+
+    def test_bcd_stage_totals_include_override_and_behalf(self):
+        self.battle.level_by_cycle['cn'] = [[1, 3], [4, 9], [10, 999]]
+        self.record(boss_cycle=1)
+        tail = self.record(boss_cycle=4, boss_health_remain=0, challenge_damage=1)
+        self.record(boss_cycle=10, is_continue=True, challenge_damage=40, behalf=30)
+        data = self.report()
+        data['config']['stages'][1]['weight'] = '1.5'
+        data['config']['stages'][2]['weight'] = '2.1'
+        data['config']['overrides'][str(tail.cid)] = '0.3'
+        self.save(data)
+        rows = {row['qqid']: row for row in self.report()['ranking']}
+        self.assertEqual(rows[10]['total_blades'], 2)
+        self.assertEqual(rows[10]['stage_blades'], [1, 1, 0])
+        self.assertEqual(rows[10]['stage_scores'], [1, .15, 0])
+        self.assertEqual(rows[10]['score'], 1.15)
+        self.assertEqual(rows[30]['stage_blades'], [0, 0, 1])
+        self.assertEqual(rows[30]['stage_scores'], [0, 0, 2.1])
+        data = self.report()
+        data['config']['stages'][0]['weight'] = '1.25'
+        with self.assertRaisesRegex(performance.PerformanceError, '1 位小数'):
+            self.save(data)
 
     def test_invalid_weights_and_ranges_do_not_replace_file(self):
         record = self.record()

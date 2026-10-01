@@ -14,25 +14,30 @@ var vm = new Vue({
             let previous = 0;
             for (const stage of this.config.stages) {
                 if (!Number.isInteger(stage.from) || !Number.isInteger(stage.to) || stage.from !== previous + 1 || stage.to < stage.from) return '阶段须从第 1 周开始，周目连续且不重叠';
-                if (!this.validWeight(stage.weight)) return '权重须在 0 至 100 之间，最多 4 位小数';
+                if (!this.validWeight(stage.weight, 1)) return '阶段权重须在 0 至 100 之间，最多 1 位小数';
                 previous = stage.to;
             }
             if (this.records.some(row => row.cycle > previous)) return '阶段范围没有覆盖全部报刀';
             if (this.records.some(row => row.override != null && !this.validWeight(row.override))) return '单刀权重无效';
             return '';
         },
+        stageLabels() { return Array.from({length: Math.max(3, this.config.stages.length)}, (_, index) => this.stageLabel(index)); },
         ranking() {
             if (this.validationError) return [];
             const members = {};
-            for (const original of this.originalRanking) members[original.qqid] = Object.assign({}, original, {score: 0, base_score: 0, full_blade: 0, end_blade: 0, small_end_blade: 0});
+            for (const original of this.originalRanking) members[original.qqid] = Object.assign({}, original, {score: 0, base_score: 0, full_blade: 0, end_blade: 0, small_end_blade: 0, total_blades: 0, stage_blades: this.stageLabels.map(() => 0), stage_scores: this.stageLabels.map(() => 0)});
             for (const row of this.records) {
                 const target = members[row.credited_to];
+                const stageIndex = this.config.stages.findIndex(stage => row.cycle >= stage.from && row.cycle <= stage.to);
+                target.total_blades++;
+                target.stage_blades[stageIndex]++;
+                target.stage_scores[stageIndex] += this.recordScore(row);
                 target.score += this.recordScore(row);
                 target.base_score += this.basePoints(row);
                 const key = row.kind === '整刀' ? 'full_blade' : row.kind === '尾刀' ? 'end_blade' : 'small_end_blade';
                 target[key]++;
             }
-            return Object.values(members).map(row => Object.assign(row, {score: Math.round(row.score * 100000) / 100000})).sort((a, b) => b.score - a.score || a.qqid - b.qqid);
+            return Object.values(members).map(row => Object.assign(row, {score: Math.round(row.score * 100000) / 100000, stage_scores: row.stage_scores.map(score => Math.round(score * 100000) / 100000)})).sort((a, b) => b.score - a.score || a.qqid - b.qqid);
         },
         filteredRecords() {
             const query = this.search.trim().toLowerCase();
@@ -42,7 +47,8 @@ var vm = new Vue({
     },
     watch: { search() { this.page = 1; } },
     methods: {
-        validWeight(value) { return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100 && Math.abs(value * 10000 - Math.round(value * 10000)) < 1e-7; },
+        stageLabel(index) { return index < 25 ? String.fromCharCode(66 + index) : '阶段 ' + (index + 1); },
+        validWeight(value, precision = 4) { return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100 && Math.abs(value * Math.pow(10, precision) - Math.round(value * Math.pow(10, precision))) < 1e-7; },
         changed() { this.dirty = true; },
         basePoints(row) { return row.kind === '整刀' || row.damage >= this.config.threshold ? 1 : 0.5; },
         effectiveWeight(row) {
@@ -99,7 +105,7 @@ var vm = new Vue({
         },
         exportCsv() {
             const cell = value => '"' + String(value).replace(/^[=+@-]/, "'$&").replace(/"/g, '""') + '"';
-            const rows = [['QQ', '成员', '业绩分', '原始分', '整刀', '尾刀', '补偿刀'], ...this.ranking.map(row => [row.qqid, row.nickname, row.score, row.base_score, row.full_blade, row.end_blade, row.small_end_blade])];
+            const rows = [['QQ', '成员', '总刀数', ...this.stageLabels.map(label => label + '阶段'), ...this.stageLabels.map(label => label + '得分'), '总业绩分'], ...this.ranking.map(row => [row.qqid, row.nickname, row.total_blades, ...row.stage_blades, ...row.stage_scores, row.score])];
             const url = URL.createObjectURL(new Blob(['\ufeff' + rows.map(row => row.map(cell).join(',')).join('\r\n')], {type: 'text/csv;charset=utf-8'}));
             const link = document.createElement('a'); link.href = url; link.download = '业绩表-档案' + this.battleId + (this.dirty ? '-预览' : '') + '.csv'; link.click();
             setTimeout(() => URL.revokeObjectURL(url), 1000);

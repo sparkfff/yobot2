@@ -42,7 +42,10 @@ def validate_config(config, records):
         if (isinstance(start, bool) or isinstance(end, bool) or not isinstance(start, int)
                 or not isinstance(end, int) or start != previous + 1 or end < start or end > 1000000):
             raise PerformanceError('阶段须从第 1 周开始，周目连续且不重叠')
-        normalized.append({'from': start, 'to': end, 'weight': str(weight(stage['weight']))})
+        stage_weight = weight(stage['weight'])
+        if stage_weight != stage_weight.quantize(Decimal('.1')):
+            raise PerformanceError('阶段权重最多 1 位小数')
+        normalized.append({'from': start, 'to': end, 'weight': str(stage_weight)})
         previous = end
     ids = {str(record.cid) for record in records}
     if any(record.boss_cycle > previous for record in records):
@@ -145,7 +148,9 @@ def calculate(records, members, config, names):
         if qqid not in rows:
             rows[qqid] = {'qqid': qqid, 'nickname': names.get(qqid, str(qqid)),
                          'score': Decimal(0), 'base_score': Decimal(0), 'damage': 0,
-                         'full_blade': 0, 'end_blade': 0, 'small_end_blade': 0}
+                         'full_blade': 0, 'end_blade': 0, 'small_end_blade': 0,
+                         'total_blades': 0, 'stage_blades': [0] * max(3, len(config['stages'])),
+                         'stage_scores': [Decimal(0)] * max(3, len(config['stages']))}
         return rows[qqid]
     for qqid in members:
         member(qqid)
@@ -160,6 +165,9 @@ def calculate(records, members, config, names):
         score = base * applied_weight
         owner = record.behalf or record.qqid
         row = member(owner)
+        row['total_blades'] += 1
+        row['stage_blades'][stage_number - 1] += 1
+        row['stage_scores'][stage_number - 1] += score
         row['score'] += score
         row['base_score'] += base
         row['damage'] += record.challenge_damage
@@ -172,6 +180,7 @@ def calculate(records, members, config, names):
                         'override': override})
     ranking = sorted(rows.values(), key=lambda row: (-row['score'], row['qqid']))
     for row in ranking:
+        row['stage_scores'] = [float(value) for value in row['stage_scores']]
         row['score'], row['base_score'] = float(row['score']), float(row['base_score'])
     return ranking, details
 
