@@ -18,7 +18,8 @@ def performance_title(group, data):
     # Archive dates are PCR calendar days, not the date the image is requested.
     day = max((row['date'] for row in data['records']),
               default=pcr_datetime(group.game_server)[0])
-    month = datetime.fromtimestamp(day * 86400, timezone.utc).strftime('%Y年%m月')
+    date = datetime.fromtimestamp(day * 86400, timezone.utc)
+    month = f'{date.year:04d}年{date.month:02d}月'
     return f'{group.group_name or group.group_id}-{month}-公会战业绩表'
 
 
