@@ -63,8 +63,11 @@ def main():
  | |_| | (_) | |_) | (_) | |_
   \__, |\___/|_.__/ \___/ \__|
    __/ |
-  |___/            --Remix
+  |___/            --yobot2
 ==============================""")
+    print("yobot2：基于 yobot_remix 的会战工具")
+    print("项目主页：https://github.com/sparkfff/yobot2")
+    print("运行、初始化与配置：src/client/README.md")
     print("正在初始化...")
 
     if os.path.exists('yobot_config.json'):
@@ -80,9 +83,9 @@ def main():
             time.sleep(3)
             raise e from e
         token = config.get("access_token", None)
-        if token is None:
+        if not token:
             print("警告：没有设置access_token，这会直接暴露机器人接口")
-            print("详见https://yobot.win/usage/access-token/")
+            print("请按 src/client/README.md 的 access_token 配置说明设置令牌并重启")
     else:
         token = None
 

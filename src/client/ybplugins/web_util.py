@@ -101,18 +101,7 @@ class WebUtil:
         async def yobot_api_getdomain():
             if 'yobot_user' not in session:
                 return jsonify(code=400, message='Unauthorized')
-            name = request.args.get('name')
-            if name is None:
-                return jsonify(code=400, message='No name specified')
-            try:
-                async with aiohttp.request('GET', url='http://api2.yobot.win/getdomain/?name='+name) as response:
-                    if response.status != 200:
-                        raise ServerError(
-                            f'http code {response.status} from api2.yobot.win')
-                    res = await response.json()
-            except:
-                return jsonify(code=401, message='Fail: Connect to Server')
-            return jsonify(res)
+            return jsonify(code=410, message='原 yobot 域名申请服务已停止，请自行配置域名'), 410
 
         @app.route(
             urljoin(self.setting["public_basepath"],

@@ -68,7 +68,8 @@ class Yobot:
             self.glo_setting = json.load(config_file)
         if not os.path.exists(config_f_path):
             shutil.copyfile(default_config_f_path, config_f_path)
-            print("设置已初始化，发送help获取帮助")
+            print("设置已初始化，配置文件：{}".format(config_f_path))
+            print("请按 src/client/README.md 完成 access_token 等配置并重启；连接机器人后发送 help 获取本地帮助")
 
         boss_filepath = os.path.join(dirname, "boss3.json")
         if not os.path.exists(boss_filepath):
@@ -320,5 +321,5 @@ def get_version(base_version: str, base_commit:  int) -> dict:
         return {
             "run-as": "python",
             "commited": False,
-            "ver_name": f"Remix-{base_version}"
+            "ver_name": f"yobot2-{base_version}"
         }

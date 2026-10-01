@@ -1,11 +1,10 @@
-# yobot_remix
+# yobot2
 
-本 fork 的会战服务、权限与文件访问重构说明及测试方法见 [重构说明](docs/refactoring.md)。
+yobot2 是基于 yobot_remix 的《公主连结》会战工具，提供出刀申请、报刀、尾刀、伤害记录、挂树、Boss 状态与网页会战管理，支持多 CQ 连接。
 
-yobot魔改版，支持新版公会战。<br>
-删除了除会战外的功能（肯定有没删干净的地方）<br>
-没实战测试过，可能存在未知bug<br>
-多来点测试工程师\_(:з)∠)_<br>
+[项目主页](https://github.com/sparkfff/yobot2) · [运行、初始化与配置](src/client/README.md) · [重构说明及测试方法](docs/refactoring.md)
+
+原 yobot.win 文档站已不可用，请使用本仓库说明和程序内的本地帮助页。
 
 现已将全部在线CDN以及资源改为本地静态资源。注意不要在设置中开启 web_gzip 压缩，保持为0即为关闭状态，否则开启后网页资源会加载不全。
 
@@ -31,5 +30,3 @@ yobot魔改版，支持新版公会战。<br>
 > ps：用补偿刀收尾会影响补偿判断，如果用补偿刀收尾需要报补偿
 
 [源码](./src/client)
-
-[介绍](https://yobot.win)
