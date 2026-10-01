@@ -16,6 +16,8 @@
 
 ![登录页](ui/login.png)
 
+![公会业绩表（示例数据）](ui/performance-demo.png)
+
 ## 实现
 
 - `public/static/ui/theme.css` 提供共享样式；`partials/ui_head.html` 使用带内容摘要的资源地址，避免旧缓存。

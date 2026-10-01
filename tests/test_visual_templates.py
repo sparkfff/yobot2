@@ -5,7 +5,7 @@ import sys
 import tempfile
 import unittest
 
-from quart import Quart
+from quart import Quart, session
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src/client'))
 from ybplugins.file_access import register_file_routes
@@ -38,9 +38,11 @@ class VisualTemplateTests(unittest.IsolatedAsyncioTestCase):
     async def test_main_pages_load_same_versioned_theme_and_responsive_viewport(self):
         for template in ('admin/setting.html', 'admin/users.html', 'clan/panel.html',
                          'clan/setting.html', 'clan/progress.html', 'clan/subscribers.html',
-                         'clan/statistics.html', 'clan/statistics/statistics2.html', 'login.html'):
+                         'clan/statistics.html', 'clan/statistics/statistics2.html',
+                         'clan/statistics/performance.html', 'login.html'):
             with self.subTest(template=template):
                 async with self.app.test_request_context('/bot/'):
+                    session['csrf_token'] = 'test'
                     html = await render_template(template, is_member=True, allow_api=False)
                 tags = Elements(html).tags
                 themes = [attrs['href'] for tag, attrs in tags if tag == 'link'

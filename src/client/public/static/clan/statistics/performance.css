@@ -1,27 +1,53 @@
+/* Performance-specific layout; colors, controls and motion inherit the shared theme. */
 [v-cloak] { display: none; }
-* { box-sizing: border-box; }
-body { margin: 0; padding: 24px; background: #f4f7fc; color: #263650; font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; }
-#app { max-width: 1320px; margin: auto; }
-header, .heading, .section-heading, .archive, .actions, .threshold { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-header, .heading, .section-heading { justify-content: space-between; }
-header { padding: 0 0 24px; color: #63748d; }
-a { color: #3568d4; text-decoration: none; }
-h1 { font-size: 26px; margin: 12px 0; } h2 { font-size: 18px; margin: 0; }
-p { color: #63748d; } section { padding: 24px; background: white; border: 1px solid #e2e8f2; border-radius: 14px; margin: 20px 0; }
-.section-heading p { max-width: 900px; } .status { margin: 8px 0 20px; }
-.threshold { margin-bottom: 20px; } .threshold .el-input-number { width: 220px; } .actions { margin-top: 16px; }
-.el-alert { margin: 12px 0; } .el-button, .el-input__inner { border-radius: 8px; }
-.el-table th { background: #f1f5fc; color: #52637b; } .el-table { border-radius: 8px; }
-.el-pagination { margin-top: 20px; text-align: center; } .search { width: 280px; max-width: 100%; }
-.el-input-number { width: 140px; } .el-button--primary { background: #3568d4; border-color: #3568d4; }
-.el-message-box { max-width: calc(100vw - 28px); }
-:focus-visible { outline: 3px solid #98b6f4; outline-offset: 3px; }
-@media (max-width: 600px) { body { padding: 14px; } section { padding: 18px 12px; } h1 { font-size: 22px; } .section-heading, .heading { align-items: flex-start; } .el-pagination { display: flex; justify-content: center; flex-wrap: wrap; } }
-
-.performance-ranking { margin-top: 16px; }
-.performance-ranking.el-table .total-count { background: #f5f7fb; }
-.performance-ranking.el-table .stage-tone-0 { background: #eef5ff; }
-.performance-ranking.el-table .stage-tone-1 { background: #eef8f3; }
-.performance-ranking.el-table .stage-tone-2 { background: #f5f1fc; }
-.performance-ranking.el-table .total-score { background: #e8effb; font-weight: 600; }
-.performance-ranking.el-table td, .performance-ranking.el-table th { border-right: 1px solid white; }
+.yobot-ui .ui-performance { text-align: left; }
+.ui-performance header, .ui-performance .heading, .ui-performance .section-heading,
+.ui-performance .archive, .ui-performance .actions, .ui-performance .threshold {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.ui-performance header, .ui-performance .heading, .ui-performance .section-heading { justify-content: space-between; }
+.ui-performance header {
+  padding: 22px 24px; margin-bottom: 24px; border-radius: 16px;
+  background: radial-gradient(ellipse at 100% 0%, rgba(70, 131, 196, .55), transparent 65%), linear-gradient(110deg, #172342, #2c3866);
+  box-shadow: 0 12px 30px rgba(28, 42, 78, .14); color: #d5e1fb;
+}
+.yobot-ui .ui-performance header a { color: #d5e1fb; }
+.ui-performance header span { color: #fff; font-weight: 650; letter-spacing: 1px; }
+.ui-performance .heading, .ui-performance section {
+  padding: 24px; background: linear-gradient(135deg, #fff, #fbfcff);
+  border: 1px solid var(--ui-border); border-radius: 18px;
+  box-shadow: var(--ui-shadow); margin: 20px 0;
+}
+.ui-performance .heading { border-top: 3px solid #8a7fed; }
+.ui-performance .heading h1 { font-size: 28px; margin: 0 0 8px; }
+.ui-performance h2 { font-size: 18px; margin: 0; font-weight: 650; }
+.yobot-ui .ui-performance p { color: var(--ui-muted); }
+.ui-performance .heading p { margin: 0; }
+.ui-performance .section-heading p { max-width: 900px; }
+.ui-performance .section-heading > div { min-width: 0; max-width: 100%; }
+.ui-performance .status { margin: 8px 0 20px; }
+.ui-performance .threshold { margin-bottom: 20px; }
+.ui-performance .el-input-number { width: 140px; max-width: 100%; }
+.ui-performance .threshold .el-input-number { width: 220px; }
+.ui-performance .actions { margin-top: 20px; gap: 12px; }
+.ui-performance .actions .el-button + .el-button { margin-left: 0; }
+.ui-performance .search { width: 280px; max-width: 100%; }
+.ui-performance .performance-ranking { margin-top: 20px; }
+/* Keep stage and total colors visible over shared hover and striped row rules. */
+.yobot-ui .ui-performance .performance-ranking.el-table .total-count { background: #f1f3f9; }
+.yobot-ui .ui-performance .performance-ranking.el-table .stage-tone-0 { background: #edf3ff; }
+.yobot-ui .ui-performance .performance-ranking.el-table .stage-tone-1 { background: #edf8f3; }
+.yobot-ui .ui-performance .performance-ranking.el-table .stage-tone-2 { background: #f3effc; }
+.yobot-ui .ui-performance .performance-ranking.el-table .total-score { background: #e8e6fc; color: #5146aa; font-weight: 650; }
+.ui-performance .performance-ranking.el-table td, .ui-performance .performance-ranking.el-table th { border-right: 1px solid #fff; }
+@media (prefers-reduced-motion: no-preference) {
+  .ui-performance .heading h1, .ui-performance .section-heading h2 { animation: ui-surface-in .55s ease backwards; }
+}
+@media (max-width: 600px) {
+  .ui-performance header { padding: 18px 16px; gap: 10px; }
+  .ui-performance .heading, .ui-performance section { padding: 20px 14px; }
+  .ui-performance .heading h1 { font-size: 23px; }
+  .ui-performance .heading, .ui-performance .section-heading { align-items: flex-start; }
+  .ui-performance .archive { width: 100%; gap: 12px; }
+  .ui-performance .actions .el-button { flex: 1 1 130px; }
+}
