@@ -54,7 +54,10 @@ class StatisticsTemplateTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('test-clan-secret', html)
         for tag, attrs in elements:
             if tag == 'a':
-                self.assertFalse(attrs.get('href', '').startswith(('http:', 'https:', '//')))
+                href = attrs.get('href', '')
+                if href.startswith(('http:', 'https:', '//')):
+                    self.assertIn(href, ('https://github.com/sparkfff/yobot2',
+                                         'https://github.com/A-kirami/YoCool'))
 
     async def test_api_disabled_omits_key_and_copy_script(self):
         html = await self.page(False)

@@ -1,36 +1,39 @@
 <!DOCTYPE html>
+<html lang="zh-CN" class="yobot-ui">
 
 <head>
     <title>总统计</title>
-    <meta name='viewport' content='width=1485' charset="utf-8" />
+    <meta name='viewport' content='width=device-width, initial-scale=1' charset="utf-8" />
     <script src="/yobot-depencency/vue@2.6.11/dist/vue.min.js"></script>
     <script src="/yobot-depencency/axios@0.19.2/dist/axios.min.js"></script>
     <script src="/yobot-depencency/element-ui@2.13.0/lib/index.js"></script>
     <link rel="stylesheet" href="/yobot-depencency/element-ui@2.13.0/lib/theme-chalk/index.css">
+{% include 'partials/ui_head.html' %}
 </head>
 
-<body>
+<body class="ui-clan ui-chart">
     <div id="app">
         <el-button icon="el-icon-back" @click="location='..'"></el-button>
         <el-table :data="tableData">
-            <el-table-column prop="date" label="时间" width="180" sortable>
+            <el-table-column prop="date" label="时间" min-width="180" sortable>
                 <template slot-scope="scope">
                     [[ scope.row.date.toLocaleString() ]]
                 </template>
             </el-table-column>
-            <el-table-column prop="qqid" label="QQ号" width="120" sortable></el-table-column>
-            <el-table-column prop="nickname" label="昵称" width="200" sortable></el-table-column>
-            <el-table-column prop="damage" label="伤害" width="200" sortable></el-table-column>
-            <el-table-column prop="boss" label="boss" :filter-method="handleFilter" :filters="bosses" width="200"
+            <el-table-column prop="qqid" label="QQ号" min-width="120" sortable></el-table-column>
+            <el-table-column prop="nickname" label="昵称" min-width="200" sortable></el-table-column>
+            <el-table-column prop="damage" label="伤害" min-width="200" sortable></el-table-column>
+            <el-table-column prop="boss" label="boss" :filter-method="handleFilter" :filters="bosses" min-width="200"
                 sortable>
             </el-table-column>
 
-            <el-table-column prop="status" label="状态" width="200" :filter-method="handleFilter"
+            <el-table-column prop="status" label="状态" min-width="200" :filter-method="handleFilter"
                 :filters="[{ text: '普通', value: '普通' }, { text: '尾刀', value: '尾刀' },{ text: '剩余刀', value: '剩余刀' },{ text: '余尾刀', value: '余尾刀' }]"
                 sortable></el-table-column>
 
         </el-table>
     </div>
+{% include 'partials/ui_footer.html' %}
 </body>
 <script>
     var DMG_TYPE = ['普通','剩余刀','尾刀','余尾刀']

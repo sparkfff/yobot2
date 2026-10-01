@@ -88,17 +88,22 @@ var vm = new Vue({
         this.status_long_polling();
     },
     beforeMount () {
-        var userAgentInfo = navigator.userAgent;
-        var Agents = ['Android', 'iPhone', 'SymbianOS', 'Windows Phone', 'iPad', 'iPod'];
-        for (var v = 0; v < Agents.length; v++) {
-            if (userAgentInfo.indexOf(Agents[v]) > 0) {
-                this.isMobile = true
-                break
-            }
+        this._layoutQuery = window.matchMedia('(max-width: 767px)');
+        this.isMobile = this._layoutQuery.matches;
+        this._layoutListener = function (event) { this.isMobile = event.matches; }.bind(this);
+        if (this._layoutQuery.addEventListener) {
+            this._layoutQuery.addEventListener('change', this._layoutListener);
+        } else {
+            this._layoutQuery.addListener(this._layoutListener);
         }
     },
     destroyed: function () {
         this.leavePage = true;
+        if (this._layoutQuery.removeEventListener) {
+            this._layoutQuery.removeEventListener('change', this._layoutListener);
+        } else {
+            this._layoutQuery.removeListener(this._layoutListener);
+        }
     },
     computed: {
         damageHint: function () {

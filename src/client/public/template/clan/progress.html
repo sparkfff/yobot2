@@ -1,14 +1,15 @@
 <!DOCTYPE html>
+<html lang="zh-CN" class="yobot-ui">
 
 <head>
 	<title>出刀记录</title>
-	<meta name='viewport' content='width=480' charset="utf-8" />
+	<meta name='viewport' content='width=device-width, initial-scale=1' charset="utf-8" />
 	<script src="/yobot-depencency/vue@2.6.11/dist/vue.min.js"></script>
 	<script src="/yobot-depencency/axios@0.19.2/dist/axios.min.js"></script>
 	<script src="/yobot-depencency/element-ui@2.13.0/lib/index.js"></script>
 	<link rel="stylesheet" href="/yobot-depencency/element-ui@2.13.0/lib/theme-chalk/index.css">
 	<script src="/yobot-depencency/jquery@2.1.1/jquery.min.js"></script>
-	<script src="/yobot-depencency/yocool@final/princessadventure/yocool.js"></script>
+
 	<link rel="stylesheet" href="/yobot-depencency/yocool@final/princessadventure/style.css">
 
 	<style>
@@ -73,9 +74,10 @@
 			}
 		}
 	</style>
+{% include 'partials/ui_head.html' %}
 </head>
 
-<body>
+<body class="ui-clan ui-progress">
 	<div id="app">
 		<div id="topToolbar">
 			<el-page-header @back="location='..'" content=""></el-page-header>
@@ -340,7 +342,7 @@
 				</el-table>
 				<div style="width: 100%;">
 				<el-button class="progress-btn" @click="viewInExcel" size="mini"
-					style="width: 115px;left: 600px;position: relative;">
+					style="width: 115px;margin: 16px 0;">
 					<i class="el-icon-document">在Excel中查看</i></el-button>
 				</div>
 			</div>
@@ -362,6 +364,7 @@
 			没有记录
 		</template>
 	</div>
+{% include 'partials/ui_footer.html' %}
 </body>
 <script>
 	var csrf_token = "{{ session['csrf_token'] }}";

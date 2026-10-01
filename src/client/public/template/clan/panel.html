@@ -1,14 +1,15 @@
 <!DOCTYPE html>
+<html lang="zh-CN" class="yobot-ui">
 
 <head>
 	<title>公会战</title>
-	<meta name='viewport' content='width=480' charset="utf-8" />
+	<meta name='viewport' content='width=device-width, initial-scale=1' charset="utf-8" />
 	<script src="/yobot-depencency/vue@2.6.11/dist/vue.min.js"></script>
 	<script src="/yobot-depencency/axios@0.19.2/dist/axios.min.js"></script>
 	<script src="/yobot-depencency/element-ui@2.13.0/lib/index.js"></script>
 	<link rel="stylesheet" href="/yobot-depencency/element-ui@2.13.0/lib/theme-chalk/index.css">
 	<script src="/yobot-depencency/jquery@2.1.1/jquery.min.js"></script>
-	<script src="/yobot-depencency/yocool@final/princessadventure/yocool.js"></script>
+
 	<link rel="stylesheet" href="/yobot-depencency/yocool@final/princessadventure/style.css">
 	
 	<style>
@@ -28,9 +29,10 @@
 		}
 		}
 	</style>
+{% include 'partials/ui_head.html' %}
 </head>
 
-<body>
+<body class="ui-clan ui-panel">
 	<div id="app">
 		<div id="topToolbar">
 			<el-page-header @back="location='../../user'"></el-page-header>
@@ -49,7 +51,7 @@
 			<div class="clanname" style="margin-top:60px;">[[groupData.group_name]]</div>
 			<div class="clancycle" style="margin-bottom:-3%;">第[[base_cycle]]周目挑战中</div>
 			<el-main style="padding: 1%;margin-top: 5%;">
-				<el-row v-for="(info, boss_num) in bossData" :key="boss_num" style="margin-bottom: 0;background-color: var(--background-color)">
+				<el-row class="mobile-boss-card" v-for="(info, boss_num) in bossData" :key="boss_num" style="margin-bottom: 0;background-color: var(--background-color)">
 					<el-col style="width: 25%;">
 						<img style="float:left;width:100px;height:100px;margin:5px;" :src="boss_icon_src(boss_num)">
 					</el-col>
@@ -106,7 +108,7 @@
 									</el-dialog>
 								</div>
 								<div style="margin: 10px;">
-									<el-button size="small" style="width:auto" @click="recordDamageDialog[boss_num]=true;behalf=null">报刀</el-button>
+									<el-button class="report-button" size="small" style="width:auto" @click="recordDamageDialog[boss_num]=true;behalf=null">报刀</el-button>
 									<el-dialog title="报刀" :visible.sync="recordDamageDialog[boss_num]">
 										<el-form>
 											<el-form-item label="正在出刀的成员" label-width="120">
@@ -163,7 +165,7 @@
 				</el-row>
 			</el-main>
 			{% if is_member -%}
-			<div class="buttons-row" style="margin: 20px;">
+			<div class="buttons-row panel-actions panel-actions-management" role="group" aria-label="会战管理">
 				<div>
 					<el-button type="info" size="small" @click="recordUndo">撤销报刀</el-button>
 				</div>
@@ -205,7 +207,7 @@
 					</a>
 				</div>
 			</div>
-			<div class="buttons-row" style="margin: 20px;">
+			<div class="buttons-row panel-actions panel-actions-status" role="group" aria-label="出刀状态">
 				<div>
 					<el-button type="info" size="small" @click="treeDialog=true">挂树</el-button>
 					<el-dialog title="挂树" :visible.sync="treeDialog">
@@ -289,7 +291,7 @@
 					</el-dialog>
 				</div>
 			</div>
-			<div class="buttons-row" style="margin: 20px;">
+			<div class="buttons-row panel-actions panel-actions-reservation" role="group" aria-label="Boss 预约">
 				<div>
 					<el-button type="info" size="small" @click="subscribeFormVisible = true" style="width: auto;">预约boss</el-button>
 					<el-dialog title="预约boss" :visible.sync="subscribeFormVisible">
@@ -334,9 +336,9 @@
 			<div class="clancycle" style="margin-bottom: -25px;">第[[base_cycle]]周目挑战中</div>
 			<el-main style="padding: 0 5%; margin: 0 auto;">
 				<el-row class="boss_info-all">
-					<el-col v-for="(info, boss_num) in bossData" :key="boss_num" style="margin: 10px;">
+					<el-col class="boss-card" v-for="(info, boss_num) in bossData" :key="boss_num" style="margin: 10px;">
 						<div><img :src="boss_icon_src(boss_num)"></div>
-						<div style="font-weight: 550">[[info.cycle]]周目-[[info.name]]</div>
+						<div class="boss-title" style="font-weight: 550">[[info.cycle]]周目-[[info.name]]</div>
 						<div class="boss_info-single_health_box">
 							<div class="boss_info-single_health" :style="{ width: (info.health/info.full_health)*100 + '%'}">
 								[[((info.health/info.full_health) * 100).toFixed(1)]]%
@@ -400,7 +402,7 @@
 						</div>
 						
 						<div class="small-buttons-row" style="width:100%">
-							<el-button size="small" style="width:100%" @click="recordDamageDialog[boss_num]=true;behalf=null">报刀</el-button>
+							<el-button class="report-button" size="small" style="width:100%" @click="recordDamageDialog[boss_num]=true;behalf=null">报刀</el-button>
 							<el-dialog title="报刀" :visible.sync="recordDamageDialog[boss_num]">
 								<el-form>
 									<el-form-item label="正在出刀的成员" label-width="120">
@@ -437,7 +439,7 @@
 				</el-row>
 
 				{% if is_member -%}
-				<div class="buttons-row" style="margin-bottom: 25px;">
+				<div class="buttons-row panel-actions panel-actions-management" role="group" aria-label="会战管理">
 					<div>
 						<el-button type="info" size="small" @click="recordUndo">撤销报刀</el-button>
 					</div>
@@ -482,7 +484,7 @@
 						</a>
 					</div>
 				</div>
-				<div class="buttons-row" style="margin-bottom: 25px;">
+				<div class="buttons-row panel-actions panel-actions-status" role="group" aria-label="出刀状态">
 					<div>
 						<el-button type="info" size="small" @click="treeDialog=true">挂树</el-button>
 						<el-dialog title="挂树" :visible.sync="treeDialog">
@@ -566,7 +568,7 @@
 						</el-dialog>
 					</div>
 				</div>
-				<div class="buttons-row" style="margin-bottom: 20px;">
+				<div class="buttons-row panel-actions panel-actions-reservation" role="group" aria-label="Boss 预约">
 					<div>
 						<el-button type="info" size="small" @click="subscribeFormVisible = true" style="width: auto;">预约boss</el-button>
 						<el-dialog title="预约boss" :visible.sync="subscribeFormVisible">
@@ -608,6 +610,7 @@
 		</div>
 	</div>
 	<!-- <script src="https://jscdn.yslsy.top/gh/stevenjoezhang/live2d-widget@latest/autoload.js"></script> -->
+{% include 'partials/ui_footer.html' %}
 </body>
 
 <script>
