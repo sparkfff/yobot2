@@ -213,8 +213,8 @@ def register_routes(self, app: Quart):
 				seconds = payload.get('return_seconds')
 				if isinstance(cid, bool) or not isinstance(cid, int) or cid <= 0:
 					return jsonify(code=30, message='记录编号必须是正整数')
-				if isinstance(seconds, bool) or not isinstance(seconds, int) or not 0 <= seconds <= 90:
-					return jsonify(code=30, message='返秒必须是0至90的整数秒数')
+				if isinstance(seconds, bool) or not isinstance(seconds, int) or not 21 <= seconds <= 90:
+					return jsonify(code=30, message='返秒必须是21至90的整数秒数')
 				with Clan_challenge._meta.database.atomic():
 					current_group = Clan_group.get_by_id(group_id)
 					actor = User.get_or_none(qqid=user_id)

@@ -159,8 +159,8 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
     if return_seconds is not None:
         if not defeat:
             raise InputError('仅尾刀可记录返秒')
-        if isinstance(return_seconds, bool) or not isinstance(return_seconds, int) or not 0 <= return_seconds <= 90:
-            raise InputError('返秒必须是0至90的整数秒数')
+        if isinstance(return_seconds, bool) or not isinstance(return_seconds, int) or not 21 <= return_seconds <= 90:
+            raise InputError('返秒必须是21至90的整数秒数')
     if not defeat and (isinstance(damage, bool) or not isinstance(damage, int) or damage < 0):
         raise InputError('伤害必须是非负整数')
     behalf = qqid if behalfed is not None else None

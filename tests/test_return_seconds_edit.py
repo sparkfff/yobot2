@@ -67,7 +67,7 @@ class ReturnSecondsEditTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.edit(record))['code'], 11)
         Clan_member.update(role=10).where(Clan_member.group_id == 100,
                                          Clan_member.qqid == 20).execute()
-        self.assertEqual((await self.edit(record, 0))['code'], 0)
+        self.assertEqual((await self.edit(record, 21))['code'], 0)
         await self.login(1)
         self.assertEqual((await self.edit(record, 90))['code'], 0)
 
@@ -77,7 +77,7 @@ class ReturnSecondsEditTests(unittest.IsolatedAsyncioTestCase):
         response = await self.client.post('/clan/100/api/', json=dict(
             action='set_return_seconds', record_id=record.cid, return_seconds=41))
         self.assertEqual((await response.get_json())['code'], 15)
-        for seconds in (-1, 91, True, '41', 1.5, None):
+        for seconds in (-1, 0, 20, 91, True, '41', 1.5, None):
             self.assertEqual((await self.edit(record, seconds))['code'], 30)
         for cid in (True, '1', None, -1):
             self.assertEqual((await self.call(dict(action='set_return_seconds',

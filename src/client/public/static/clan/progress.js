@@ -212,8 +212,8 @@ var vm = new Vue({
         },
         saveTailSeconds: function (row) {
             if (row.saving) return;
-            if (!Number.isInteger(row.edit_seconds) || row.edit_seconds < 0 || row.edit_seconds > 90) {
-                this.$message.error('请输入0至90的整数秒数');
+            if (!Number.isInteger(row.edit_seconds) || row.edit_seconds < 21 || row.edit_seconds > 90) {
+                this.$message.error('请输入21至90的整数秒数');
                 return;
             }
             row.saving = true;

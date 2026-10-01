@@ -40,8 +40,8 @@ class TailSecondsTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_legacy_and_explicit_boss_seconds_formats(self):
         for text, boss, seconds in [('尾刀 1', '1', None), ('尾刀 1 41s', '1', 41),
-                                    ('尾刀41s', None, 41), ('尾刀 4s', None, 4),
-                                    ('尾刀 90秒', None, 90), ('尾刀 0S', None, 0),
+                                    ('尾刀41s', None, 41), ('尾刀 21s', None, 21),
+                                    ('尾刀 90秒', None, 90), ('尾刀 21S', None, 21),
                                     ('尾刀 1 41s bc', '1', 41),
                                     ('尾刀 1 b [CQ:at,qq=30] 昨日 41s', '1', 41)]:
             with self.subTest(text=text), patch.object(self.battle, 'challenge', return_value='ok') as report:
@@ -55,7 +55,7 @@ class TailSecondsTests(unittest.IsolatedAsyncioTestCase):
     async def test_invalid_seconds_and_report_notes_never_write(self):
         self.application()
         original = self.group().challenging_member_list
-        for text in ['尾刀 91s', '尾刀 -1s', '尾刀 1.5s', '尾刀 41s 42s',
+        for text in ['尾刀 0s', '尾刀 20s', '尾刀 91s', '尾刀 -1s', '尾刀 1.5s', '尾刀 41s 42s',
                      '尾刀 1 :留言', '尾刀 1 ：留言']:
             with self.subTest(text=text):
                 reply = self.command(text)
@@ -63,7 +63,7 @@ class TailSecondsTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(Clan_challenge.select().count(), 0)
                 self.assertEqual(self.group().challenging_member_list, original)
         self.assertIn('报刀格式', self.command('报刀 -1 1 :留言', 4))
-        for seconds in [True, '41', -1, 91]:
+        for seconds in [True, '41', -1, 0, 20, 91]:
             with self.assertRaises(InputError):
                 self.battle.challenge(100, 10, True, boss_num=1, return_seconds=seconds)
         with self.assertRaises(InputError):

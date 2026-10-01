@@ -30,18 +30,18 @@ class ReturnSecondsDisplayTests(unittest.IsolatedAsyncioTestCase):
                                      return_seconds=seconds)
 
     async def test_report_exposes_recorded_zero_and_legacy_seconds(self):
-        for seconds in (41, 0, None):
+        for seconds in (41, 21, None):
             self.record(seconds=seconds)
         self.db.execute_sql('PRAGMA reverse_unordered_selects = ON')
         reports = self.battle.get_report(100, None, None, harness.TODAY, nocache=True)
-        self.assertEqual([r['return_seconds'] for r in reports], [41, 0, 90])
+        self.assertEqual([r['return_seconds'] for r in reports], [41, 21, 90])
 
     async def test_real_status_image_shows_only_unconsumed_current_seconds(self):
         self.record(seconds=41)
         self.record(seconds=23)
         self.record(compensation=True)  # A compensation tail consumes, never adds.
         self.record(seconds=None)
-        self.record(qqid=30, seconds=0)
+        self.record(qqid=30, seconds=21)
         self.record(qqid=20, seconds=90, date=harness.TODAY - 1)
         self.record(qqid=20, seconds=89, bid=1)
         self.record(qqid=20, seconds=88, gid=200)
@@ -49,7 +49,7 @@ class ReturnSecondsDisplayTests(unittest.IsolatedAsyncioTestCase):
             result = self.battle.challenger_info(100)
         chips = render.call_args.args[1]['补偿']
         self.assertEqual(chips['10'], '10 23s / 90s')
-        self.assertEqual(chips['30'], '30 0s')
+        self.assertEqual(chips['30'], '30 21s')
         self.assertNotIn('20', chips)
         encoded = result.split('base64://', 1)[1].split(']', 1)[0]
         with Image.open(BytesIO(base64.b64decode(encoded))) as image:
@@ -110,13 +110,16 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
     row.edit_seconds = null;
     app.saveTailSeconds(row);
     assert.strictEqual(sent, undefined);
-    row.edit_seconds = 0;
+    row.edit_seconds = 20;
+    app.saveTailSeconds(row);
+    assert.strictEqual(sent, undefined);
+    row.edit_seconds = 21;
     app.saveTailSeconds(row);
     await tick();
     assert.strictEqual(sent.record_id, 7);
     assert.strictEqual(sent.expected_return_seconds, null);
-    assert.strictEqual(record.return_seconds, 0);
-    assert.strictEqual(record.recorded_return_seconds, 0);
+    assert.strictEqual(record.return_seconds, 21);
+    assert.strictEqual(record.recorded_return_seconds, 21);
     assert.strictEqual(row.saving, false);
     assert.strictEqual(row.editing, false);
     fail = true;
@@ -124,9 +127,9 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
     row.edit_seconds = 41;
     app.saveTailSeconds(row);
     await tick();
-    assert.strictEqual(sent.expected_return_seconds, 0);
-    assert.strictEqual(row.return_seconds, 0);
-    assert.strictEqual(record.return_seconds, 0);
+    assert.strictEqual(sent.expected_return_seconds, 21);
+    assert.strictEqual(row.return_seconds, 21);
+    assert.strictEqual(record.return_seconds, 21);
     assert.strictEqual(row.editing, true);
     assert.strictEqual(row.saving, false);
 })().catch(error => { console.error(error); process.exit(1); });
@@ -153,7 +156,7 @@ const record = (seconds, cont = false) => ({qqid: 10, cycle: 1, boss_num: 1,
 app.refresh([record(41), record(23), record(null, true), record(null)]);
 app.viewTails();
 assert.deepStrictEqual(Array.from(app.tailsData, c => c.return_seconds), [23, null]);
-assert.strictEqual(app.returnSeconds(0), '0s');
+assert.strictEqual(app.returnSeconds(21), '21s');
 assert.strictEqual(app.returnSeconds(null), '?s');
 assert.strictEqual(app.returnSeconds(undefined), '?s');
 assert.ok(app.cdetail(record(41)).includes('返秒：41s'));
