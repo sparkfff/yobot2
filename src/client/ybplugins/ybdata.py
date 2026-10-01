@@ -1,8 +1,11 @@
 from peewee import *
 from playhouse.migrate import SqliteMigrator, migrate
 import json
+import logging
 
 from .web_util import rand_string
+
+_logger = logging.getLogger(__name__)
 
 db_mode = True  # True为本地（原），Flase为为改为mysql（需要在第15行配置使用）
 
@@ -188,8 +191,7 @@ def init(sqlite_filename):
         old_version = 1 if User.table_exists() else _version
     # Never create tables in a database owned by a newer program version.
     if old_version > _version:
-        print("数据库版本高于程序版本，请升级yobot")
-        raise SystemExit()
+        raise SystemExit("数据库版本高于程序版本，请升级yobot")
 
     with _db.atomic():
         if not has_schema:
@@ -202,9 +204,9 @@ def init(sqlite_filename):
             ])
             DB_schema.replace(key="version", value=str(_version)).execute()
         elif old_version < _version:
-            print("正在升级数据库")
+            _logger.info("正在升级数据库")
             db_upgrade(old_version)
-            print("数据库升级完毕")
+            _logger.info("数据库升级完毕")
 
 
 def db_upgrade(old_version):
