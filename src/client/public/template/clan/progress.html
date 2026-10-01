@@ -12,6 +12,13 @@
 	<link rel="stylesheet" href="/yobot-depencency/yocool@final/princessadventure/style.css">
 
 	<style>
+		.tail-record-dialog .el-dialog {
+			width: 92%;
+			max-width: 760px;
+		}
+		.tail-record-dialog .el-table {
+			width: 100%;
+		}
 		.el-table td,
 		.el-table th {
 			text-align: center;
@@ -129,7 +136,7 @@
 						:show-text="false" :stroke-width="16"></el-progress>
 				</el-col>
 			</el-row>
-			<el-dialog title="未完成的尾刀一览" :visible.sync="tailsDataVisible">
+			<el-dialog class="tail-record-dialog" title="未完成的尾刀一览" :visible.sync="tailsDataVisible">
 				<template v-if="tailsData.length > 0">
 					<el-table :data="tailsData">
 						<el-table-column prop="qqid" label="QQ号" width="120" sortable></el-table-column>
@@ -138,7 +145,9 @@
 						<el-table-column prop="damage" label="尾刀伤害" width="120" sortable>
 							<template slot-scope="scope">[[ scope.row.damage.toLocaleString() ]]</template>
 						</el-table-column>
-						<el-table-column prop="message" label="留言"></el-table-column>
+						<el-table-column prop="return_seconds" label="返秒">
+							<template slot-scope="scope">[[ returnSeconds(scope.row.return_seconds) ]]</template>
+						</el-table-column>
 					</el-table>
 				</template>
 				<template v-else>

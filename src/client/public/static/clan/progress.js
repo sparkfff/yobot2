@@ -81,7 +81,9 @@ var vm = new Vue({
             if (cha == undefined) {
                 return '';
             }
-            return `(${cha.cycle}-${cha.boss_num}) <a class="digit${cha.damage.toString().length}">${cha.damage}</a>`;
+            var seconds = cha.health_remain === 0 && cha.return_seconds != null
+                ? ` · 返${this.returnSeconds(cha.return_seconds)}` : '';
+            return `(${cha.cycle}-${cha.boss_num}) <a class="digit${cha.damage.toString().length}">${cha.damage}</a>${seconds}`;
         },
         behalf: function (cha) {
             if (cha == undefined) {
@@ -101,10 +103,13 @@ var vm = new Vue({
             detailstr += cha.cycle + '周目' + cha.boss_num + '号boss\n';
             detailstr += (cha.health_remain + cha.damage).toLocaleString(options = { timeZone: 'asia/shanghai' }) 
                         + '→' + cha.health_remain.toLocaleString(options = { timeZone: 'asia/shanghai' });
-            if (cha.message) {
-                detailstr += '\n留言：' + cha.message;
+            if (cha.health_remain === 0 && !cha.is_continue) {
+                detailstr += '\n返秒：' + this.returnSeconds(cha.return_seconds);
             }
             return detailstr;
+        },
+        returnSeconds: function (seconds) {
+            return seconds == null ? '未记录' : seconds + 's';
         },
         arraySpanMethod: function ({ row, column, rowIndex, columnIndex }) {
             if (columnIndex >= 4) {
@@ -188,7 +193,7 @@ var vm = new Vue({
                             nickname: m.nickname,
                             boss: c.cycle + '-' + c.boss_num,
                             damage: c.damage,
-                            message: c.message,
+                            return_seconds: c.return_seconds,
                         });
                     }
                 }

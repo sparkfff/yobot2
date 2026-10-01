@@ -473,10 +473,10 @@ def boss_status_summary(self, group_id:Groupid) -> str:
 
 #报刀
 def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
-              is_continue=False, *, boss_num=None, previous_day=False):
+              is_continue=False, *, boss_num=None, previous_day=False, return_seconds=None):
     from .battle_service import challenge as report
     return report(self, group_id, qqid, defeat, damage, behalfed, is_continue,
-                  boss_num=boss_num, previous_day=previous_day)
+                  boss_num=boss_num, previous_day=previous_day, return_seconds=return_seconds)
 
 #撤销上一刀的伤害
 def undo(self, group_id, qqid):
@@ -919,7 +919,7 @@ def save_slot(self, group_id: Groupid, qqid: QQid,
 
 #记录伤害/清空伤害
 @atomic_battle_operation
-def report_hurt(self, s, hurt, group_id:Groupid, qqid:QQid, clean_type = 0):
+def report_hurt(self, s, hurt, group_id:Groupid, qqid:QQid, clean_type = 0, message=None):
 	"""
 	记录/清空出刀暂停后，成员报的伤害
 
@@ -929,6 +929,7 @@ def report_hurt(self, s, hurt, group_id:Groupid, qqid:QQid, clean_type = 0):
 		group_id: QQ群号
 		qqid: 需要进行操作的QQ号
 		clean_type: 清理类型 0不清理(记录伤害) 1清特定玩家
+		message: 报伤害留言，重新报伤害或取消时覆盖/清空
 	"""
 	group:Clan_group = get_clan_group(self, group_id)
 	if group is None: raise GroupNotExist
@@ -939,7 +940,7 @@ def report_hurt(self, s, hurt, group_id:Groupid, qqid:QQid, clean_type = 0):
 	ret_msg = ''
 	handler = ChallengeHandler(group)
 	if clean_type == 0:
-		handler.state.report_damage(qqid, s, hurt)
+		handler.state.report_damage(qqid, s, hurt, message)
 		ret_msg = '已记录伤害，小心不要手滑哦~ ♪(´▽｀)'
 	elif clean_type == 1:
 		if handler.state.get(boss_num, qqid).damage == 0:
@@ -992,6 +993,8 @@ def challenger_info_small(self, group:Clan_group, boss_num, msg:List = None):
 				temp_msg += f'({behalf}代刀)'
 			if (0 if info['damage'] is None else info['damage']) > 0:
 				temp_msg += f', 剩{info["s"]}秒，打了{info["damage"]}万伤害'
+				if info.get('damage_message'):
+					temp_msg += f'，留言：{info["damage_message"]}'
 			if info['tree']:
 				temp_msg += ', 已挂树'
 			msg.append(temp_msg)
@@ -1013,25 +1016,21 @@ def challenger_info(self, group_id):
 		Clan_challenge.bid == group.battle_id,
 		Clan_challenge.challenge_pcrdate == date,
 	).order_by(Clan_challenge.cid)
-	end_blade_qqid = {}         #保存有尾刀未出的人的qq
+	end_blade_qqid = {}         #按出刀顺序保存每个成员未使用的补偿返秒
 	for c in challenges:
 		#如果出完这刀时boss的血量为0，且不是收尾刀
 		if c.boss_health_remain == 0 and not c.is_continue:
-			if c.qqid not in end_blade_qqid:
-				end_blade_qqid[c.qqid] = 1
-			else:
-				end_blade_qqid[c.qqid] += 1
+			end_blade_qqid.setdefault(c.qqid, []).append(c.return_seconds)
 		if c.is_continue and c.qqid in end_blade_qqid:
-			end_blade_qqid[c.qqid] -= 1
-			if end_blade_qqid[c.qqid] == 0: del end_blade_qqid[c.qqid]
+			end_blade_qqid[c.qqid].pop(0)
+			if not end_blade_qqid[c.qqid]: del end_blade_qqid[c.qqid]
 
 	finish_challenge_count = sum(bool(c.boss_health_remain or c.is_continue) for c in challenges)
 
 	half_challenge_list:Dict[str, Any] = {"style-background-color": (240,240,240)}
-	for qqid, num in end_blade_qqid.items() :
-		if num < 0:
-			continue
-		half_challenge_list[str(qqid)] = f'{self._get_nickname_by_qqid(qqid)[:4]}'+ (f' x {num}' if num else '')
+	for qqid, seconds in end_blade_qqid.items():
+		return_times = ' / '.join(f'{s}s' if s is not None else '未记录' for s in seconds)
+		half_challenge_list[str(qqid)] = f'{self._get_nickname_by_qqid(qqid)[:4]} {return_times}'
 
 	challenging_list = safe_load_json(group.challenging_member_list)
 	group_boss_data = self._boss_data_dict(group)
@@ -1057,6 +1056,8 @@ def challenger_info(self, group_id):
 					challenger_msg += f'({behalf}代)'
 				if (0 if info['damage'] is None else info['damage']) > 0:
 					challenger_msg += f'@{info["s"]}s,{info["damage"]}w'
+					if info.get('damage_message'):
+						challenger_msg += f':{info["damage_message"]}'
 				if info['tree']:
 					challenger_msg += '(挂树)'
 					if "挂树" not in extra_info:
@@ -1198,7 +1199,7 @@ def get_report(self,
 		expressions.append(Clan_challenge.challenge_pcrdate == pcrdate)
 	for c in Clan_challenge.select().where(
 		*expressions
-	):
+	).order_by(Clan_challenge.cid):
 		report.append({
 			'battle_id': c.bid,
 			'qqid': c.qqid,
@@ -1215,6 +1216,7 @@ def get_report(self,
 			'damage': c.challenge_damage,
 			'is_continue': c.is_continue,
 			'message': c.message,
+			'return_seconds': c.return_seconds,
 			'behalf': c.behalf,
 		})
 	return report

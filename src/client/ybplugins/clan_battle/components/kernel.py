@@ -187,16 +187,19 @@ def execute(self, match_num, ctx):
 
 
 	elif match_num == 5:  # 尾刀
-		match = re.match(r'^(?:尾刀|尾) ?([1-5])? *(补偿|补|b|bc|B|BC|Bc|bC)? ?(?:\[CQ:at,qq=(\d+)(?:,name=[^\]]*)?\])? *(昨[日天])?$', cmd)
-		if not match: return
-		behalf = match.group(3) and int(match.group(3))
-		is_continue = match.group(2) and True or False
+		match = re.match(r'^(?:尾刀|尾) *([1-5](?!\d|[sS秒]))? *(?:(\d+)[sS秒])? *(补偿|补|bc|b|BC|B|Bc|bC)? *(?:\[CQ:at,qq=(\d+)(?:,name=[^\]]*)?\])? *(昨[日天])? *(?:(\d+)[sS秒])? *$', cmd)
+		if not match or (match.group(2) is not None and match.group(6) is not None):
+			return '尾刀格式:\n尾刀 41s（需先申请出刀）\n尾刀 1 41s（1表示1王，41s表示返秒）'
+		behalf = match.group(4) and int(match.group(4))
+		is_continue = bool(match.group(3))
 		boss_num = match.group(1)
 
-		previous_day = bool(match.group(4))
+		previous_day = bool(match.group(5))
+		seconds = match.group(2) if match.group(2) is not None else match.group(6)
+		return_seconds = int(seconds) if seconds is not None else None
 		try:
 			boss_status = self.challenge(group_id, user_id, True, None, behalf, is_continue,
-				boss_num = boss_num, previous_day = previous_day)
+				boss_num = boss_num, previous_day = previous_day, return_seconds = return_seconds)
 			# if behalf:
 			# 	sender = self._get_nickname_by_qqid(user_id)
 			# 	self.behelf_remind(behalf, f'{sender}使用您的账号收了个尾刀')
@@ -361,8 +364,8 @@ def execute(self, match_num, ctx):
 			return back_msg
 
 	elif match_num == 17:  # 报伤害
-		match = re.match(r'^(?:打了|报伤害)(?:剩| |)(?:(\d+(?:s|S|秒))?(?:打了| |)(\d+)(?:w|W|万))? *(?:\[CQ:at,qq=(\d+)(?:,name=[^\]]*)?\])? *$', cmd)
-		if not match: return '格式出错(O×O)，如“报伤害 2s200w”或“报伤害 3s300w@xxx”'
+		match = re.match(r'^(?:打了|报伤害)(?:剩| |)(?:(\d+(?:s|S|秒))?(?:打了| |)(\d+)(?:w|W|万))? *(?:\[CQ:at,qq=(\d+)(?:,name=[^\]]*)?\])?(?: +([^\r\n]+))? *$', cmd)
+		if not match or (match.group(4) and (not match.group(2) or '[CQ:' in match.group(4))): return '格式出错(O×O)，如“报伤害 2s200w”或“报伤害 30000w 还有一个ub”；代报时请把@放在留言前'
 		s = match.group(1) or 1
 		if s != 1: s = re.sub(r'([a-z]|[A-Z]|秒)', '', s)
 		hurt = match.group(2) and int(match.group(2)) or 0
@@ -370,7 +373,7 @@ def execute(self, match_num, ctx):
 		if behalf: user_id = behalf
 		if not self.check_blade(group_id, user_id):
 			return '你都没申请出刀，报啥子伤害啊 (╯‵□′)╯︵┻━┻'
-		return self.report_hurt(int(s), hurt, group_id, user_id)
+		return self.report_hurt(int(s), hurt, group_id, user_id, message=match.group(4))
 	
 	#TODO 权限申请封装func调用
 	elif match_num == 18:  #权限，设置意外无权限用户有权限

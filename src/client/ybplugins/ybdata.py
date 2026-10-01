@@ -1,5 +1,5 @@
 from peewee import *
-from playhouse.migrate import SqliteMigrator, migrate
+from playhouse.migrate import MySQLMigrator, SqliteMigrator, migrate
 import json
 import logging
 
@@ -9,7 +9,7 @@ _logger = logging.getLogger(__name__)
 
 db_mode = True  # True为本地（原），Flase为为改为mysql（需要在第15行配置使用）
 
-_version = 3  # 目前版本
+_version = 4  # 目前版本
 MAX_TRY_TIMES = 5
 
 if db_mode:
@@ -137,6 +137,7 @@ class Clan_challenge(_BaseModel):
     is_continue = BooleanField()  # 是否是补偿刀
     message = TextField(null=True)  # 信息
     behalf = IntegerField(null=True)  # 代刀人
+    return_seconds = IntegerField(null=True)  # 尾刀获得的补偿秒数
 
     class Meta:
         indexes = (
@@ -241,4 +242,8 @@ def _upgrade_in_transaction(old_version):
 
     if old_version < 3:
         Clan_challenge_undo.create_table(safe=True)
+    if old_version < 4:
+        migrator = SqliteMigrator(_db) if db_mode else MySQLMigrator(_db)
+        migrate(migrator.add_column(
+            Clan_challenge._meta.table_name, "return_seconds", IntegerField(null=True)))
     DB_schema.replace(key="version", value=str(_version)).execute()

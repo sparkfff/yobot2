@@ -240,7 +240,7 @@ def register_routes(self, app: Quart):
 					payload['damage'],
 					payload['behalf'],
 					payload['is_continue'],
-					boss_num = payload['boss_num'])
+					boss_num = payload['boss_num'], return_seconds = payload.get('return_seconds'))
 				except ClanBattleError as e:
 					_logger.info('网页 失败 {} {} {}'.format(
 						user_id, group_id, action))

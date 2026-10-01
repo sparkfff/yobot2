@@ -151,10 +151,15 @@ def switch_data_slot(self, group_id: Groupid, battle_id: int):
 
 @atomic_battle_operation
 def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
-              is_continue=False, *, boss_num=None, previous_day=False):
+              is_continue=False, *, boss_num=None, previous_day=False, return_seconds=None):
     """Validate a report, then atomically update records and clan state."""
     if not isinstance(defeat, bool) or not isinstance(is_continue, bool):
         raise InputError('尾刀和补偿标记必须是布尔值')
+    if return_seconds is not None:
+        if not defeat:
+            raise InputError('仅尾刀可记录返秒')
+        if isinstance(return_seconds, bool) or not isinstance(return_seconds, int) or not 0 <= return_seconds <= 90:
+            raise InputError('返秒必须是0至90的整数秒数')
     if not defeat and (isinstance(damage, bool) or not isinstance(damage, int) or damage < 0):
         raise InputError('伤害必须是非负整数')
     behalf = qqid if behalfed is not None else None
@@ -223,7 +228,8 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
         challenge_pcrdate=date, challenge_pcrtime=time,
         boss_cycle=boss_cycle, boss_num=int(boss_num),
         boss_health_remain=health_remaining,
-        challenge_damage=challenge_damage, is_continue=is_continue, behalf=behalf)
+        challenge_damage=challenge_damage, is_continue=is_continue, behalf=behalf,
+        return_seconds=return_seconds)
 
     rollover_notices = []
     if defeat and all(health == 0 for health in now_health.values()):
@@ -269,6 +275,8 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
             counts.finished + 1,
             counts.compensation - 1 if is_continue else counts.compensation,
             '剩余刀' if is_continue else '完整刀')
+    if return_seconds is not None:
+        message += f'返秒：{return_seconds}s\n'
     message += '\n'.join(self.challenger_info_small(group, boss_num))
     Clan_challenge_undo.create(cid=report.cid, gid=group_id, bid=group.battle_id,
                                before_state=before.dumps(),
