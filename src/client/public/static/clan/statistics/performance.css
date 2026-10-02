@@ -99,3 +99,21 @@
 .yobot-ui .ui-performance .performance-ranking.el-table td.total-score { border-left: 1px solid #edf0f7; }
 .yobot-ui .ui-performance .performance-ranking.el-table .el-table__body tr:hover > td { background: #f8faff; box-shadow: none; }
 .ui-performance .score-pill { background: linear-gradient(135deg, #f0ecff, #f6f3ff); border: 1px solid #e7e0fc; box-shadow: 0 2px 5px rgba(79, 70, 229, .035); }
+
+/* Fine woven texture stays in the header and score accents, away from data. */
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-0 {
+  background-image: repeating-linear-gradient(135deg, rgba(83, 119, 174, .045) 0, rgba(83, 119, 174, .045) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #edf3fc, #fafcfe);
+}
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-1 {
+  background-image: repeating-linear-gradient(135deg, rgba(71, 131, 103, .045) 0, rgba(71, 131, 103, .045) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #edf5f1, #fbfdfc);
+}
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-2 {
+  background-image: repeating-linear-gradient(135deg, rgba(128, 99, 166, .045) 0, rgba(128, 99, 166, .045) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #f2eef9, #fcfbfe);
+}
+.yobot-ui .ui-performance .performance-ranking.el-table th.total-score {
+  background-image: repeating-linear-gradient(135deg, rgba(100, 78, 175, .055) 0, rgba(100, 78, 175, .055) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #ece8ff, #f8f6ff);
+}
+.ui-performance .score-pill {
+  background-image: radial-gradient(rgba(109, 87, 180, .07) .6px, transparent .6px), linear-gradient(135deg, #f0ecff, #f6f3ff);
+  background-size: 4px 4px, 100% 100%;
+}
