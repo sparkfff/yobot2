@@ -28,8 +28,8 @@
     <section v-loading="saving || loading"><div class="section-heading"><div><p class="eyebrow">成员排名</p><h2>成员业绩</h2></div><el-button size="small" @click="exportCsv" :disabled="!!validationError">导出 CSV</el-button></div>
       <el-alert v-if="validationError" :title="validationError" type="error" :closable="false"></el-alert>
       <el-table :data="ranking" class="performance-ranking">
-        <el-table-column label="排名" width="70" align="center"><template slot-scope="scope"><span class="rank-badge" :class="{'rank-top': scope.$index < 3}">[[ scope.$index + 1 ]]</span></template></el-table-column>
-        <el-table-column prop="nickname" label="成员" min-width="150"></el-table-column>
+        <el-table-column label="排名" width="70" align="center"><template slot-scope="scope"><span class="rank-badge" :class="{'rank-top': scope.$index === 0, 'rank-second': scope.$index === 1, 'rank-third': scope.$index === 2}">[[ scope.$index + 1 ]]</span></template></el-table-column>
+        <el-table-column prop="nickname" label="成员" min-width="190"><template slot-scope="scope"><div class="member-identity"><span class="member-avatar" aria-hidden="true">[[ String(scope.row.nickname).slice(0, 1) ]]</span><div><span class="member-name">[[ scope.row.nickname ]]</span><span class="member-id">[[ scope.row.qqid ]]</span></div></div></template></el-table-column>
         <el-table-column prop="total_blades" label="总刀数" min-width="100" align="center" class-name="total-count"></el-table-column>
         <el-table-column v-for="(label, index) in stageLabels" :key="'count-' + label" :label="label + '阶段'" min-width="100" align="center" :class-name="'stage-tone-' + (index % 3)"><template slot-scope="scope">[[ scope.row.stage_blades[index] ]]</template></el-table-column>
         <el-table-column v-for="(label, index) in stageLabels" :key="'score-' + label" :label="label + '得分'" min-width="100" align="center" :class-name="'stage-tone-' + (index % 3)"><template slot-scope="scope">[[ number(scope.row.stage_scores[index]) ]]</template></el-table-column>

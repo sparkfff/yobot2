@@ -1,28 +1,28 @@
 /* Scoped editorial layout for the performance dashboard. */
 [v-cloak] { display: none; }
-.yobot-ui body.ui-performance { background: #f5f6f8; color: #283440; text-align: left; }
+.yobot-ui body.ui-performance { background: transparent; color: var(--font-color); text-align: left; }
 .yobot-ui .ui-performance #app { max-width: 1320px; }
 .ui-performance header, .ui-performance .heading, .ui-performance .section-heading,
 .ui-performance .archive, .ui-performance .actions, .ui-performance .threshold {
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
 }
 .ui-performance header, .ui-performance .heading, .ui-performance .section-heading { justify-content: space-between; }
-.ui-performance header { padding: 8px 0 24px; border-bottom: 1px solid #e2e5e9; color: #89929c; font-size: 12px; }
-.yobot-ui .ui-performance header a { color: #607080; }
+.ui-performance header { padding: 22px 24px; border-radius: 16px; background: radial-gradient(ellipse at 100% 0%, rgba(70, 131, 196, .55), transparent 65%), linear-gradient(110deg, #172342, #2c3866); box-shadow: var(--ui-shadow); color: #d5e1fb; font-size: 12px; }
+.yobot-ui .ui-performance header a { color: #d5e1fb; }
 .ui-performance .heading { padding: 36px 0 30px; }
 .ui-performance .heading h1 { font-size: 34px; letter-spacing: -1px; margin: 8px 0 10px; font-weight: 650; }
-.yobot-ui .ui-performance p { color: #85909a; }
+.yobot-ui .ui-performance p { color: var(--ui-muted); }
 .ui-performance .heading p { margin: 0; }
-.yobot-ui .ui-performance .eyebrow { font-size: 11px; letter-spacing: 2px; color: #718680; margin: 0 0 6px; }
+.yobot-ui .ui-performance .eyebrow { font-size: 11px; letter-spacing: 2px; color: var(--ui-accent); margin: 0 0 6px; }
 .ui-performance h2 { font-size: 19px; margin: 0; font-weight: 650; }
 .ui-performance .archive { padding: 12px 16px; background: #fff; border: 1px solid #e5e8eb; border-radius: 10px; font-size: 12px; }
-.ui-performance .performance-metrics { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #e2e6e9; border-radius: 12px; background: white; margin-bottom: 26px; }
+.ui-performance .performance-metrics { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--ui-border); border-radius: 16px; box-shadow: var(--ui-shadow); background: white; margin-bottom: 26px; }
 .performance-metrics > div { padding: 22px 26px; }
 .performance-metrics > div + div { border-left: 1px solid #eceef0; }
-.performance-metrics span { display: block; color: #8a949e; font-size: 12px; margin-bottom: 8px; }
+.performance-metrics span { display: block; color: var(--ui-muted); font-size: 12px; margin-bottom: 8px; }
 .performance-metrics strong { font-size: 30px; font-weight: 550; font-variant-numeric: tabular-nums; }
 .performance-metrics small { font-size: 12px; color: #98a0a8; font-weight: 400; }
-.ui-performance section { padding: 26px; background: #fff; border: 1px solid #e3e7ea; border-radius: 12px; margin: 20px 0; }
+.ui-performance section { padding: 26px; background: #fff; border: 1px solid var(--ui-border); border-radius: 16px; box-shadow: var(--ui-shadow); margin: 20px 0; }
 .ui-performance .section-heading { margin-bottom: 22px; }
 .ui-performance .section-heading > div { min-width: 0; max-width: 100%; }
 .ui-performance .section-heading p { max-width: 900px; }
@@ -33,21 +33,19 @@
 .ui-performance .actions { margin-top: 20px; gap: 12px; }
 .ui-performance .actions .el-button + .el-button { margin-left: 0; }
 .ui-performance .search { width: 280px; max-width: 100%; }
-.yobot-ui .ui-performance .el-button { border-radius: 7px; font-weight: 400; }
-.yobot-ui .ui-performance .el-button--primary { background: #365d53; border-color: #365d53; box-shadow: none; }
 .yobot-ui .ui-performance .el-table { box-shadow: none; border: 0; border-radius: 8px; font-size: 13px; }
-.yobot-ui .ui-performance .el-table th { background: #f6f7f8; color: #7a8792; font-size: 12px; font-weight: 500; }
+.yobot-ui .ui-performance .el-table th { background: #f6f7f8; color: #7a8792; font-size: 12px; font-weight: 600; }
 .yobot-ui .ui-performance .el-table td { padding: 16px 0; font-variant-numeric: tabular-nums; }
 .yobot-ui .ui-performance .performance-ranking.el-table .total-count { background: #f8f9fa; }
 .yobot-ui .ui-performance .performance-ranking.el-table .stage-tone-0 { background: #f0f5fa; }
 .yobot-ui .ui-performance .performance-ranking.el-table .stage-tone-1 { background: #f0f6f3; }
 .yobot-ui .ui-performance .performance-ranking.el-table .stage-tone-2 { background: #f5f2f8; }
-.yobot-ui .ui-performance .performance-ranking.el-table .total-score { background: #edf4f1; color: #365d53; }
-.ui-performance .performance-ranking td, .ui-performance .performance-ranking th { border-right: 1px solid #fff; }
-.ui-performance .score-pill { display: inline-block; padding: 5px 14px; border-radius: 6px; background: #dfece5; font-size: 15px; font-weight: 650; }
+.yobot-ui .ui-performance .performance-ranking.el-table .total-score { background: #efedff; color: #5146aa; }
+.ui-performance .performance-ranking td, .ui-performance .performance-ranking th { border-right: 1px solid rgba(255,255,255,.85); }
+.ui-performance .score-pill { display: inline-block; padding: 5px 14px; border-radius: 6px; background: #e4dfff; font-size: 15px; font-weight: 650; }
 .ui-performance .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; color: #8f9aa4; }
 .ui-performance .rank-top { border-radius: 50%; background: #f2eee4; color: #947b4c; font-weight: 600; }
-.ui-performance .rules-panel { background: white; border: 1px solid #e3e7ea; border-radius: 12px; margin: 20px 0; }
+.ui-performance .rules-panel { background: white; border: 1px solid var(--ui-border); border-radius: 16px; box-shadow: var(--ui-shadow); margin: 20px 0; }
 .ui-performance .rules-panel summary { padding: 20px 26px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
 .ui-performance .rules-panel summary::-webkit-details-marker { display: none; }
 .ui-performance .rules-state { color: #86948e; font-size: 12px; }
@@ -65,3 +63,23 @@
   .ui-performance .actions .el-button { flex: 1 1 130px; }
   .ui-performance .rules-panel summary { padding: 18px 14px; }
 }
+
+/* Ranking typography and stage colors build on the PR #2 theme. */
+.yobot-ui .ui-performance .performance-ranking.el-table { border: 1px solid var(--ui-border); border-radius: 12px; }
+.yobot-ui .ui-performance .performance-ranking.el-table td { padding: 18px 0; }
+.yobot-ui .ui-performance .performance-ranking.el-table th { height: 54px; color: #52637b; background: #f1f5fc; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-0 { background: #e8f0fc; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-1 { background: #e8f3ee; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-2 { background: #eee9f8; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.total-score { background: #e5e0fb; }
+.ui-performance .member-identity { display: flex; gap: 12px; align-items: center; text-align: left; }
+.ui-performance .member-avatar { flex: 0 0 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 11px; background: linear-gradient(140deg, #eeeaff, #e5effb); color: #6660b4; font-weight: 600; }
+.ui-performance .member-name { display: block; font-size: 14px; font-weight: 550; color: #33445e; word-break: break-word; }
+.ui-performance .member-id { display: block; font-size: 10px; color: #8a97ab; margin-top: 2px; line-height: 1.4; }
+.ui-performance .rank-badge { border-radius: 9px; width: 28px; height: 28px; font-variant-numeric: tabular-nums; }
+.ui-performance .rank-top { background: #fff2d7; color: #a67a2e; }
+.ui-performance .rank-second { background: #eaf0f9; color: #627aa0; }
+.ui-performance .rank-third { background: #faeae2; color: #ad775b; }
+.ui-performance .score-pill { min-width: 60px; padding: 6px 12px; font-size: 16px; border-radius: 8px; }
+.yobot-ui .ui-performance .performance-ranking.el-table .el-table__body tr:hover > td { box-shadow: inset 0 0 0 999px rgba(79,70,229,.025); }
+.ui-performance header span { letter-spacing: 1px; font-weight: 550; }
