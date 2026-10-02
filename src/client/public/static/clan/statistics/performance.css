@@ -117,3 +117,31 @@
   background-image: radial-gradient(rgba(109, 87, 180, .07) .6px, transparent .6px), linear-gradient(135deg, #f0ecff, #f6f3ff);
   background-size: 4px 4px, 100% 100%;
 }
+
+/* Textured data surface: alternating paper tones with soft stage washes. */
+.yobot-ui .ui-performance .performance-ranking.el-table td {
+  background-color: #f9faff;
+  background-image: radial-gradient(rgba(77, 94, 140, .07) .6px, transparent .7px), linear-gradient(125deg, rgba(231, 237, 249, .32), rgba(255, 255, 255, .65));
+  background-size: 5px 5px, 100% 100%;
+}
+.yobot-ui .ui-performance .performance-ranking.el-table tr:nth-child(even) td { background-color: #f0f3fa; }
+.yobot-ui .ui-performance .performance-ranking.el-table td.total-count { background-color: #f4f6fb; }
+.yobot-ui .ui-performance .performance-ranking.el-table td.stage-tone-0 {
+  background-color: #f0f5fc;
+  background-image: radial-gradient(rgba(77, 108, 163, .075) .6px, transparent .7px), linear-gradient(120deg, rgba(215, 230, 249, .3), rgba(250, 252, 255, .7));
+}
+.yobot-ui .ui-performance .performance-ranking.el-table td.stage-tone-1 {
+  background-color: #f0f7f4;
+  background-image: radial-gradient(rgba(68, 119, 96, .075) .6px, transparent .7px), linear-gradient(120deg, rgba(218, 236, 227, .3), rgba(251, 254, 252, .7));
+}
+.yobot-ui .ui-performance .performance-ranking.el-table td.stage-tone-2 {
+  background-color: #f5f1fa;
+  background-image: radial-gradient(rgba(114, 84, 153, .075) .6px, transparent .7px), linear-gradient(120deg, rgba(229, 219, 242, .3), rgba(253, 251, 255, .7));
+}
+.yobot-ui .ui-performance .performance-ranking.el-table td.total-score {
+  background-color: #f1edfc;
+  background-image: radial-gradient(rgba(100, 78, 175, .075) .6px, transparent .7px), linear-gradient(120deg, rgba(219, 208, 249, .45), rgba(250, 247, 255, .65));
+}
+.yobot-ui .ui-performance .performance-ranking.el-table .el-table__body tr:hover > td {
+  box-shadow: inset 0 0 0 999px rgba(91, 113, 190, .045);
+}
