@@ -83,3 +83,19 @@
 .ui-performance .score-pill { min-width: 60px; padding: 6px 12px; font-size: 16px; border-radius: 8px; }
 .yobot-ui .ui-performance .performance-ranking.el-table .el-table__body tr:hover > td { box-shadow: inset 0 0 0 999px rgba(79,70,229,.025); }
 .ui-performance header span { letter-spacing: 1px; font-weight: 550; }
+
+/* White data cells with restrained stage cues instead of solid column bands. */
+.yobot-ui .ui-performance .performance-ranking.el-table td.total-count,
+.yobot-ui .ui-performance .performance-ranking.el-table td.stage-tone-0,
+.yobot-ui .ui-performance .performance-ranking.el-table td.stage-tone-1,
+.yobot-ui .ui-performance .performance-ranking.el-table td.stage-tone-2,
+.yobot-ui .ui-performance .performance-ranking.el-table td.total-score { background: #fff; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.total-count { background: linear-gradient(180deg, #f5f7fb, #fafbfd); }
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-0 { background: linear-gradient(180deg, #edf3fc, #fafcfe); box-shadow: inset 0 2px #bdcfee; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-1 { background: linear-gradient(180deg, #edf5f1, #fbfdfc); box-shadow: inset 0 2px #bcd8ca; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-2 { background: linear-gradient(180deg, #f2eef9, #fcfbfe); box-shadow: inset 0 2px #d0c2e9; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.total-score { background: linear-gradient(180deg, #ece8ff, #f8f6ff); box-shadow: inset 0 2px #b7a8f0; }
+.yobot-ui .ui-performance .performance-ranking.el-table td.total-count,
+.yobot-ui .ui-performance .performance-ranking.el-table td.total-score { border-left: 1px solid #edf0f7; }
+.yobot-ui .ui-performance .performance-ranking.el-table .el-table__body tr:hover > td { background: #f8faff; box-shadow: none; }
+.ui-performance .score-pill { background: linear-gradient(135deg, #f0ecff, #f6f3ff); border: 1px solid #e7e0fc; box-shadow: 0 2px 5px rgba(79, 70, 229, .035); }
