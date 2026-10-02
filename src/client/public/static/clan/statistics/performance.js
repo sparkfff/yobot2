@@ -18,7 +18,7 @@ var vm = new Vue({
                 previous = stage.to;
             }
             if (this.records.some(row => row.cycle > previous)) return '阶段范围没有覆盖全部报刀';
-            if (this.records.some(row => row.override != null && !this.validWeight(row.override))) return '单刀权重无效';
+            if (this.records.some(row => row.override != null && !this.validWeight(row.override))) return '单刀权重须在 0 至 100 之间，最多 1 位小数';
             return '';
         },
         stageLabels() { return Array.from({length: Math.max(3, this.config.stages.length)}, (_, index) => this.stageLabel(index)); },
@@ -48,7 +48,7 @@ var vm = new Vue({
     watch: { search() { this.page = 1; } },
     methods: {
         stageLabel(index) { return index < 25 ? String.fromCharCode(66 + index) : '阶段 ' + (index + 1); },
-        validWeight(value, precision = 4) { return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100 && Math.abs(value * Math.pow(10, precision) - Math.round(value * Math.pow(10, precision))) < 1e-7; },
+        validWeight(value, precision = 1) { return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100 && Math.abs(value * Math.pow(10, precision) - Math.round(value * Math.pow(10, precision))) < 1e-7; },
         changed() { this.dirty = true; },
         basePoints(row) { return row.kind === '整刀' || row.damage >= this.config.threshold ? 1 : 0.5; },
         effectiveWeight(row) {

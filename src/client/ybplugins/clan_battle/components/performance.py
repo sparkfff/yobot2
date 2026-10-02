@@ -25,7 +25,7 @@ def weight(value):
     return result
 
 
-def validate_config(config, records):
+def validate_config(config, records, legacy_overrides=False):
     if not isinstance(config, dict) or set(config) != {'stages', 'overrides', 'threshold'}:
         raise PerformanceError('业绩配置格式错误')
     threshold = config['threshold']
@@ -52,6 +52,8 @@ def validate_config(config, records):
         raise PerformanceError('阶段周目范围未覆盖档案中的全部报刀')
     if set(overrides) - ids:
         raise PerformanceError('单刀配置包含已撤销或不属于本公会档案的记录，请刷新')
+    if not legacy_overrides and any(weight(value) != weight(value).quantize(Decimal('.1')) for value in overrides.values()):
+        raise PerformanceError('单刀权重最多 1 位小数')
     return {'threshold': threshold, 'stages': normalized,
             'overrides': {cid: str(weight(value)) for cid, value in overrides.items()}}
 
@@ -79,13 +81,13 @@ def load_config(battle, group, battle_id, records):
             fingerprints = {str(record.cid): record_fingerprint(record) for record in records}
             config['overrides'] = {cid: value for cid, value in config['overrides'].items()
                                    if cid in fingerprints and saved['records'].get(cid) == fingerprints[cid]}
-            config = validate_config(config, records)
+            config = validate_config(config, records, legacy_overrides=True)
         except (ValueError, TypeError, KeyError, AttributeError) as exc:
             raise PerformanceError('保存的业绩配置无效，请联系管理员检查数据目录') from exc
         return config, hashlib.sha256(raw).hexdigest(), True
     config = {'threshold': group.threshold, 'overrides': {}, 'stages': [
-        {'from': start, 'to': end, 'weight': '1'}
-        for start, end in battle.level_by_cycle[group.game_server]]}
+        {'from': start, 'to': end, 'weight': '0.3' if index < 2 else '1'}
+        for index, (start, end) in enumerate(battle.level_by_cycle[group.game_server])]}
     return validate_config(config, records), 'new', False
 
 

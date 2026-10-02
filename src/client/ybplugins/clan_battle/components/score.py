@@ -33,7 +33,7 @@ def performance_cells(data):
     rows = [[str(index), row['nickname'], str(row['total_blades'])]
             + [str(value) for value in row['stage_blades']]
             + [points(value) for value in row['stage_scores']] + [points(row['score'])]
-            for index, row in enumerate(data['ranking'], 1)]
+            for index, row in enumerate((row for row in data['ranking'] if row['total_blades'] > 0), 1)]
     colors = ['#ffffff', '#ffffff', '#f5f7fb']
     colors += [STAGE_COLORS[index % 3] for index in range(count)] * 2 + ['#e8effb']
     return headers, rows, colors
@@ -79,7 +79,7 @@ def render_performance_image(title, data):
                            radius=2, fill='#6b92d7')
     header_colors = {'#eef5ff': '#dfebff', '#eef8f3': '#def1e7',
                      '#f5f1fc': '#e9e1f8', '#e8effb': '#d9e5f8'}
-    visible_rows = rows or [['—', '暂无成员'] + ['—'] * (len(headers) - 2)]
+    visible_rows = rows or [['—', '暂无出刀成员'] + ['—'] * (len(headers) - 2)]
     for row_index, cells in enumerate([headers] + visible_rows):
         x, y = padding, table_top + row_index * row_height
         for column, (cell, width, color) in enumerate(zip(cells, widths, colors)):
