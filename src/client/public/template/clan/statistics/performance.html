@@ -13,14 +13,30 @@
 </head>
 <body class="ui-performance">
 <div id="app" v-cloak>
-  <header><a href="../">← 返回统计</a><span>YOBOT · 公会业绩</span></header>
-  <div class="heading"><div><h1>[[ groupName || '公会' ]] · 业绩表</h1><p>沿用群内业绩规则，按阶段与单刀权重计算。</p></div>
+  <header><a href="../">← 返回统计</a><span>公会战 / 业绩中心</span></header>
+  <div class="heading"><div><p class="eyebrow">公会战业绩</p><h1>[[ groupName || '公会' ]]</h1><p>每一刀的贡献，都清晰可见。</p></div>
     <div class="archive"><span>会战档案</span><el-input-number v-model="requestedBattle" :min="0" :max="999999999" :precision="0" size="small"></el-input-number>
       <el-button @click="load(true)" :loading="loading" :disabled="saving" size="small">切换 / 刷新</el-button></div></div>
   <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon></el-alert>
   <template v-if="ready">
     <el-alert v-if="dirty" title="权重已修改，页面显示的是预览；保存后成员和群内业绩表才会更新。" type="warning" :closable="false" show-icon></el-alert>
-    <section v-loading="saving || loading">
+    <div class="performance-metrics">
+      <div><span>参与成员</span><strong>[[ records.length ? new Set(records.map(row => row.credited_to)).size : 0 ]]<small> 人</small></strong></div>
+      <div><span>累计出刀</span><strong>[[ number(records.length) ]]<small> 刀</small></strong></div>
+      <div><span>总业绩分</span><strong>[[ number(ranking.reduce((total, row) => total + row.score, 0)) ]]</strong></div>
+    </div>
+    <section v-loading="saving || loading"><div class="section-heading"><div><p class="eyebrow">成员排名</p><h2>成员业绩</h2></div><el-button size="small" @click="exportCsv" :disabled="!!validationError">导出 CSV</el-button></div>
+      <el-alert v-if="validationError" :title="validationError" type="error" :closable="false"></el-alert>
+      <el-table :data="ranking" class="performance-ranking">
+        <el-table-column label="排名" width="70" align="center"><template slot-scope="scope"><span class="rank-badge" :class="{'rank-top': scope.$index === 0, 'rank-second': scope.$index === 1, 'rank-third': scope.$index === 2}">[[ scope.$index + 1 ]]</span></template></el-table-column>
+        <el-table-column prop="nickname" label="成员" min-width="190"><template slot-scope="scope"><div class="member-identity"><span class="member-avatar" aria-hidden="true">[[ String(scope.row.nickname).slice(0, 1) ]]</span><div><span class="member-name">[[ scope.row.nickname ]]</span><span class="member-id">[[ scope.row.qqid ]]</span></div></div></template></el-table-column>
+        <el-table-column prop="total_blades" label="总刀数" min-width="100" align="center" class-name="total-count"></el-table-column>
+        <el-table-column v-for="(label, index) in stageLabels" :key="'count-' + label" :label="label + '阶段'" min-width="100" align="center" :class-name="'stage-tone-' + (index % 3)"><template slot-scope="scope">[[ scope.row.stage_blades[index] ]]</template></el-table-column>
+        <el-table-column v-for="(label, index) in stageLabels" :key="'score-' + label" :label="label + '得分'" min-width="100" align="center" :class-name="'stage-tone-' + (index % 3)"><template slot-scope="scope">[[ number(scope.row.stage_scores[index]) ]]</template></el-table-column>
+        <el-table-column label="总业绩分" min-width="125" prop="score" sortable align="center" class-name="total-score"><template slot-scope="scope"><strong class="score-pill">[[ number(scope.row.score) ]]</strong></template></el-table-column>
+      </el-table>
+    </section>
+    <details class="rules-panel"><summary><span>计分与权重设置</span><span class="rules-state">[[ dirty ? '有未保存修改' : saved ? '已保存规则' : '默认规则' ]] <i class="el-icon-arrow-down"></i></span></summary><section v-loading="saving || loading">
       <div class="section-heading"><div><h2>计分规则</h2><p>整刀 1 分；尾刀、补偿刀达到阈值为 1 分，否则 0.5 分。代刀归代刀人。单刀权重覆盖阶段权重，0 表示不计分。</p></div>
         <el-button v-if="canEdit" type="primary" @click="save" :loading="saving" :disabled="!dirty || loading">保存权重</el-button>
         <el-tag v-else type="info">仅管理员可修改</el-tag></div>
@@ -33,18 +49,7 @@
         <el-table-column label="阶段刀权重" min-width="155"><template slot-scope="scope"><el-input-number v-if="canEdit" v-model="scope.row.weight" :min="0" :max="100" :step="0.1" :precision="1" size="small" @change="changed"></el-input-number><span v-else>[[ scope.row.weight ]]</span></template></el-table-column>
       </el-table>
       <div v-if="canEdit" class="actions"><el-button size="small" @click="addStage">添加阶段</el-button><el-button size="small" @click="removeStage" :disabled="config.stages.length === 1">删除末阶段</el-button><el-button size="small" @click="resetWeights">权重恢复为 1</el-button></div>
-    </section>
-    <section v-loading="saving || loading"><div class="section-heading"><h2>成员业绩</h2><el-button size="small" @click="exportCsv" :disabled="!!validationError">导出 CSV</el-button></div>
-      <el-alert v-if="validationError" :title="validationError" type="error" :closable="false"></el-alert>
-      <el-table :data="ranking" class="performance-ranking">
-        <el-table-column type="index" label="排名" width="70" align="center"></el-table-column>
-        <el-table-column prop="nickname" label="成员" min-width="150"></el-table-column>
-        <el-table-column prop="total_blades" label="总刀数" min-width="100" align="center" class-name="total-count"></el-table-column>
-        <el-table-column v-for="(label, index) in stageLabels" :key="'count-' + label" :label="label + '阶段'" min-width="100" align="center" :class-name="'stage-tone-' + (index % 3)"><template slot-scope="scope">[[ scope.row.stage_blades[index] ]]</template></el-table-column>
-        <el-table-column v-for="(label, index) in stageLabels" :key="'score-' + label" :label="label + '得分'" min-width="100" align="center" :class-name="'stage-tone-' + (index % 3)"><template slot-scope="scope">[[ number(scope.row.stage_scores[index]) ]]</template></el-table-column>
-        <el-table-column label="总业绩分" min-width="125" prop="score" sortable align="center" class-name="total-score"><template slot-scope="scope"><strong>[[ number(scope.row.score) ]]</strong></template></el-table-column>
-      </el-table>
-    </section>
+    </section></details>
     <section v-loading="saving || loading"><div class="section-heading"><h2>单刀明细 · [[ records.length ]] 条</h2><el-input v-model="search" placeholder="搜索成员、归属人或记录编号" clearable class="search"></el-input></div>
       <p>默认跟随阶段权重；为单独一刀设置权重后，将完全替代该阶段权重。</p>
       <el-table :data="visibleRecords" stripe>
@@ -56,7 +61,7 @@
         <el-table-column prop="kind" label="刀类型" width="85"></el-table-column>
         <el-table-column label="伤害" min-width="125"><template slot-scope="scope">[[ number(scope.row.damage) ]]</template></el-table-column>
         <el-table-column label="基础分" width="85"><template slot-scope="scope">[[ basePoints(scope.row) ]]</template></el-table-column>
-        <el-table-column label="单刀权重" min-width="260"><template slot-scope="scope"><template v-if="canEdit"><el-button v-if="scope.row.override == null" size="small" @click="setOverride(scope.row)">设置单刀权重</el-button><el-input-number v-else v-model="scope.row.override" :min="0" :max="100" :precision="4" :step="0.1" size="small" @change="overrideChanged(scope.row)"></el-input-number><el-button v-if="scope.row.override != null" type="text" @click="clearOverride(scope.row)">跟随阶段</el-button></template><span v-else>[[ scope.row.override == null ? '跟随阶段' : scope.row.override ]]</span></template></el-table-column>
+        <el-table-column label="单刀权重" min-width="260"><template slot-scope="scope"><template v-if="canEdit"><el-button v-if="scope.row.override == null" size="small" @click="setOverride(scope.row)">设置单刀权重</el-button><el-input-number v-else v-model="scope.row.override" :min="0" :max="100" :precision="1" :step="0.1" size="small" @change="overrideChanged(scope.row)"></el-input-number><el-button v-if="scope.row.override != null" type="text" @click="clearOverride(scope.row)">跟随阶段</el-button></template><span v-else>[[ scope.row.override == null ? '跟随阶段' : scope.row.override ]]</span></template></el-table-column>
         <el-table-column label="生效权重" width="100"><template slot-scope="scope">[[ effectiveWeight(scope.row) ]]</template></el-table-column>
         <el-table-column label="业绩分" width="95"><template slot-scope="scope">[[ number(recordScore(scope.row)) ]]</template></el-table-column>
       </el-table>

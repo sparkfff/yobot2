@@ -69,10 +69,10 @@ class PerformanceTests(unittest.IsolatedAsyncioTestCase):
         self.record(is_continue=True, challenge_damage=40, behalf=30)
         result = self.report()
         rows = {row['qqid']: row for row in result['ranking']}
-        self.assertEqual(rows[10]['score'], 3)
+        self.assertEqual(rows[10]['score'], .9)
         self.assertEqual((rows[10]['full_blade'], rows[10]['end_blade'],
                           rows[10]['small_end_blade']), (1, 2, 1))
-        self.assertEqual((rows[30]['score'], rows[30]['small_end_blade']), (1, 1))
+        self.assertEqual((rows[30]['score'], rows[30]['small_end_blade']), (.3, 1))
         self.assertEqual(rows[20]['score'], 0)
         self.assertEqual(result['records'][-1]['credited_to'], 30)
 
@@ -82,22 +82,22 @@ class PerformanceTests(unittest.IsolatedAsyncioTestCase):
         data = self.report()
         data['config']['stages'][0]['weight'] = '2'
         data['config']['stages'][1]['weight'] = '3'
-        data['config']['overrides'][str(first.cid)] = '0.25'
+        data['config']['overrides'][str(first.cid)] = '0.2'
         self.save(data)
         result = self.report()
-        self.assertEqual([r['score'] for r in result['records']], [.25, 3])
-        self.assertEqual(result['ranking'][0]['score'], 3.25)
+        self.assertEqual([r['score'] for r in result['records']], [.2, 3])
+        self.assertEqual(result['ranking'][0]['score'], 3.2)
 
     def test_zero_override_survives_persistence_and_decimal_math(self):
         first = self.record()
         second = self.record(boss_health_remain=0, challenge_damage=1)
         data = self.report()
-        data['config']['overrides'][str(second.cid)] = '0.3333'
+        data['config']['overrides'][str(second.cid)] = '0.3'
         data['config']['overrides'][str(first.cid)] = '0'
         self.save(data)
         result = self.report()
         self.assertEqual(result['records'][0]['weight'], '0')
-        self.assertEqual(result['ranking'][0]['score'], .16665)
+        self.assertEqual(result['ranking'][0]['score'], .15)
         self.assertEqual(performance.weight('0'), Decimal(0))
 
     def test_bcd_stage_totals_include_override_and_behalf(self):
@@ -113,8 +113,8 @@ class PerformanceTests(unittest.IsolatedAsyncioTestCase):
         rows = {row['qqid']: row for row in self.report()['ranking']}
         self.assertEqual(rows[10]['total_blades'], 2)
         self.assertEqual(rows[10]['stage_blades'], [1, 1, 0])
-        self.assertEqual(rows[10]['stage_scores'], [1, .15, 0])
-        self.assertEqual(rows[10]['score'], 1.15)
+        self.assertEqual(rows[10]['stage_scores'], [.3, .15, 0])
+        self.assertEqual(rows[10]['score'], .45)
         self.assertEqual(rows[30]['stage_blades'], [0, 0, 1])
         self.assertEqual(rows[30]['stage_scores'], [0, 0, 2.1])
         data = self.report()
@@ -144,7 +144,7 @@ class PerformanceTests(unittest.IsolatedAsyncioTestCase):
         headers, rows, _ = performance_cells(data)
         self.assertEqual(headers[2:], ['总刀数', 'B阶段', 'C阶段', 'D阶段',
                                       'B得分', 'C得分', 'D得分', '总业绩分'])
-        self.assertEqual(rows[0][2:], ['2', '1', '1', '0', '1', '1.5', '0', '2.5'])
+        self.assertEqual(rows[0][2:], ['2', '1', '1', '0', '0.3', '1.5', '0', '1.8'])
         message = score_table(self.battle, 100)
         self.assertTrue(message.startswith('[CQ:image,file=base64://'))
         image = Image.open(BytesIO(base64.b64decode(message.split('base64://', 1)[1][:-1])))
@@ -152,13 +152,40 @@ class PerformanceTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(image.width, 1000)
         self.assertGreater(image.height, 150)
 
+    def test_default_bc_weights_and_image_omits_only_nonparticipants(self):
+        from ybplugins.clan_battle.components.score import performance_cells
+        self.battle.level_by_cycle['cn'] = [[1, 3], [4, 9], [10, 999]]
+        record = self.record()
+        data = self.report()
+        self.assertEqual([stage['weight'] for stage in data['config']['stages']], ['0.3', '0.3', '1'])
+        data['config']['overrides'][str(record.cid)] = '0'
+        self.save(data)
+        data = self.report()
+        _, rows, _ = performance_cells(data)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][2], '1')
+        self.assertEqual(rows[0][-1], '0')
+        self.assertGreater(len(data['ranking']), len(rows))
+
+    def test_legacy_single_weight_reads_without_rounding_but_new_save_rejects(self):
+        from ybplugins.clan_battle.components.performance import write_file, record_fingerprint
+        record = self.record()
+        data = self.report()
+        data['config']['stages'][0]['weight'] = '1'
+        data['config']['overrides'][str(record.cid)] = '0.25'
+        write_file(performance.config_path(self.battle, 100, 0),
+                   {'config': data['config'], 'records': {str(record.cid): record_fingerprint(record)}})
+        self.assertEqual(self.report()['records'][0]['score'], .25)
+        with self.assertRaisesRegex(performance.PerformanceError, '单刀权重最多 1 位小数'):
+            self.save(self.report())
+
     def test_invalid_weights_and_ranges_do_not_replace_file(self):
         record = self.record()
         data = self.report()
         self.save(data)
         path = performance.config_path(self.battle, 100, 0)
         original = path.read_bytes()
-        for value in ('NaN', 'Infinity', '-1', '100.1', '0.00001', True, None):
+        for value in ('NaN', 'Infinity', '-1', '100.1', '0.00001', '0.25', True, None):
             with self.subTest(value=value):
                 bad = self.report()
                 bad['config']['overrides'][str(record.cid)] = value
@@ -194,7 +221,7 @@ class PerformanceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(record.cid, replacement.cid)  # SQLite reuses the highest deleted id.
         result = self.report()
         self.assertEqual(result['config']['overrides'], {})
-        self.assertEqual(result['records'][0]['score'], 1)
+        self.assertEqual(result['records'][0]['score'], .3)
 
     def test_removed_record_override_does_not_break_remaining_report(self):
         first, second = self.record(), self.record()

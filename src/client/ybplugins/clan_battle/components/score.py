@@ -3,7 +3,7 @@ import base64
 from datetime import datetime, timezone
 from io import BytesIO
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageColor
 
 from ..exception import GroupNotExist, InputError
 from ..util import pcr_datetime
@@ -33,7 +33,7 @@ def performance_cells(data):
     rows = [[str(index), row['nickname'], str(row['total_blades'])]
             + [str(value) for value in row['stage_blades']]
             + [points(value) for value in row['stage_scores']] + [points(row['score'])]
-            for index, row in enumerate(data['ranking'], 1)]
+            for index, row in enumerate((row for row in data['ranking'] if row['total_blades'] > 0), 1)]
     colors = ['#ffffff', '#ffffff', '#f5f7fb']
     colors += [STAGE_COLORS[index % 3] for index in range(count)] * 2 + ['#e8effb']
     return headers, rows, colors
@@ -79,12 +79,48 @@ def render_performance_image(title, data):
                            radius=2, fill='#6b92d7')
     header_colors = {'#eef5ff': '#dfebff', '#eef8f3': '#def1e7',
                      '#f5f1fc': '#e9e1f8', '#e8effb': '#d9e5f8'}
-    visible_rows = rows or [['—', '暂无成员'] + ['—'] * (len(headers) - 2)]
+    surfaces = {}
+
+    def surface(width, color, header, alternate):
+        key = (width, color, header, alternate)
+        if key in surfaces:
+            return surfaces[key]
+        start = ImageColor.getrgb(color)
+        tile = Image.new('RGB', (width, row_height))
+        pixels = tile.load()
+        for ty in range(row_height):
+            for tx in range(width):
+                fade = .2 + .55 * (tx / width * .45 + ty / row_height * .55)
+                shade = 3 if alternate else 0
+                pixels[tx, ty] = tuple(max(0, round(value + (255 - value) * fade) - shade) for value in start)
+        ink = ImageDraw.Draw(tile)
+        if header:
+            for diagonal in range(-row_height, width, 6):
+                # Draw on a tile so texture cannot spill into neighboring cells.
+                for ty in range(row_height):
+                    tx = diagonal + row_height - ty
+                    if 0 <= tx < width:
+                        value = pixels[tx, ty]
+                        pixels[tx, ty] = tuple(max(0, channel - 5) for channel in value)
+            ink.line((0, 0, width, 0), fill=tuple(max(0, value - 22) for value in start), width=2)
+        else:
+            for ty in range(2, row_height, 5):
+                for tx in range(2, width, 5):
+                    value = pixels[tx, ty]
+                    pixels[tx, ty] = tuple(max(0, channel - 11) for channel in value)
+        surfaces[key] = tile
+        return tile
+
+    visible_rows = rows or [['—', '暂无出刀成员'] + ['—'] * (len(headers) - 2)]
     for row_index, cells in enumerate([headers] + visible_rows):
         x, y = padding, table_top + row_index * row_height
         for column, (cell, width, color) in enumerate(zip(cells, widths, colors)):
             background = header_colors.get(color, '#f0f3f8') if row_index == 0 else color
-            draw.rectangle((x, y, x + width - 1, y + row_height - 1), fill=background)
+            if column == len(headers) - 1:
+                background = '#e8e2fb'
+            elif row_index and column < 2:
+                background = '#f2f5fc'
+            image.paste(surface(width, background, row_index == 0, row_index > 0 and row_index % 2 == 0), (x, y))
             selected_font = header_font if row_index == 0 else font
             text_color = '#4a607e' if row_index == 0 else '#34445c'
             if row_index and column == 0 and rows:
@@ -93,9 +129,9 @@ def render_performance_image(title, data):
                 center_x, center_y = x + width // 2, y + row_height // 2
                 draw.ellipse((center_x - 17, center_y - 17, center_x + 17, center_y + 17), fill=badge)
             if row_index and column == len(headers) - 1:
-                selected_font, text_color = score_font, '#2d548c'
+                selected_font, text_color = score_font, '#5146aa'
                 draw.rounded_rectangle((x + 12, y + 10, x + width - 12, y + row_height - 10),
-                                       radius=9, fill='#dce8fb')
+                                       radius=9, fill='#efebff', outline='#ded5fa')
             if column == 1:
                 text = fit(cell, selected_font, width - 28)
                 box = draw.textbbox((0, 0), text, font=selected_font)

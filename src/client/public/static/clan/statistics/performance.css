@@ -1,53 +1,149 @@
-/* Performance-specific layout; colors, controls and motion inherit the shared theme. */
+/* Scoped editorial layout for the performance dashboard. */
 [v-cloak] { display: none; }
-.yobot-ui .ui-performance { text-align: left; }
+.yobot-ui body.ui-performance { background: transparent; color: var(--font-color); text-align: left; }
+.yobot-ui .ui-performance #app { max-width: 1320px; }
 .ui-performance header, .ui-performance .heading, .ui-performance .section-heading,
 .ui-performance .archive, .ui-performance .actions, .ui-performance .threshold {
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
 }
 .ui-performance header, .ui-performance .heading, .ui-performance .section-heading { justify-content: space-between; }
-.ui-performance header {
-  padding: 22px 24px; margin-bottom: 24px; border-radius: 16px;
-  background: radial-gradient(ellipse at 100% 0%, rgba(70, 131, 196, .55), transparent 65%), linear-gradient(110deg, #172342, #2c3866);
-  box-shadow: 0 12px 30px rgba(28, 42, 78, .14); color: #d5e1fb;
-}
+.ui-performance header { padding: 22px 24px; border-radius: 16px; background: radial-gradient(ellipse at 100% 0%, rgba(70, 131, 196, .55), transparent 65%), linear-gradient(110deg, #172342, #2c3866); box-shadow: var(--ui-shadow); color: #d5e1fb; font-size: 12px; }
 .yobot-ui .ui-performance header a { color: #d5e1fb; }
-.ui-performance header span { color: #fff; font-weight: 650; letter-spacing: 1px; }
-.ui-performance .heading, .ui-performance section {
-  padding: 24px; background: linear-gradient(135deg, #fff, #fbfcff);
-  border: 1px solid var(--ui-border); border-radius: 18px;
-  box-shadow: var(--ui-shadow); margin: 20px 0;
-}
-.ui-performance .heading { border-top: 3px solid #8a7fed; }
-.ui-performance .heading h1 { font-size: 28px; margin: 0 0 8px; }
-.ui-performance h2 { font-size: 18px; margin: 0; font-weight: 650; }
+.ui-performance .heading { padding: 36px 0 30px; }
+.ui-performance .heading h1 { font-size: 34px; letter-spacing: -1px; margin: 8px 0 10px; font-weight: 650; }
 .yobot-ui .ui-performance p { color: var(--ui-muted); }
 .ui-performance .heading p { margin: 0; }
-.ui-performance .section-heading p { max-width: 900px; }
+.yobot-ui .ui-performance .eyebrow { font-size: 11px; letter-spacing: 2px; color: var(--ui-accent); margin: 0 0 6px; }
+.ui-performance h2 { font-size: 19px; margin: 0; font-weight: 650; }
+.ui-performance .archive { padding: 12px 16px; background: #fff; border: 1px solid #e5e8eb; border-radius: 10px; font-size: 12px; }
+.ui-performance .performance-metrics { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--ui-border); border-radius: 16px; box-shadow: var(--ui-shadow); background: white; margin-bottom: 26px; }
+.performance-metrics > div { padding: 22px 26px; }
+.performance-metrics > div + div { border-left: 1px solid #eceef0; }
+.performance-metrics span { display: block; color: var(--ui-muted); font-size: 12px; margin-bottom: 8px; }
+.performance-metrics strong { font-size: 30px; font-weight: 550; font-variant-numeric: tabular-nums; }
+.performance-metrics small { font-size: 12px; color: #98a0a8; font-weight: 400; }
+.ui-performance section { padding: 26px; background: #fff; border: 1px solid var(--ui-border); border-radius: 16px; box-shadow: var(--ui-shadow); margin: 20px 0; }
+.ui-performance .section-heading { margin-bottom: 22px; }
 .ui-performance .section-heading > div { min-width: 0; max-width: 100%; }
-.ui-performance .status { margin: 8px 0 20px; }
+.ui-performance .section-heading p { max-width: 900px; }
+.ui-performance .status { margin: 8px 0 20px; font-size: 12px; }
 .ui-performance .threshold { margin-bottom: 20px; }
 .ui-performance .el-input-number { width: 140px; max-width: 100%; }
 .ui-performance .threshold .el-input-number { width: 220px; }
 .ui-performance .actions { margin-top: 20px; gap: 12px; }
 .ui-performance .actions .el-button + .el-button { margin-left: 0; }
 .ui-performance .search { width: 280px; max-width: 100%; }
-.ui-performance .performance-ranking { margin-top: 20px; }
-/* Keep stage and total colors visible over shared hover and striped row rules. */
-.yobot-ui .ui-performance .performance-ranking.el-table .total-count { background: #f1f3f9; }
-.yobot-ui .ui-performance .performance-ranking.el-table .stage-tone-0 { background: #edf3ff; }
-.yobot-ui .ui-performance .performance-ranking.el-table .stage-tone-1 { background: #edf8f3; }
-.yobot-ui .ui-performance .performance-ranking.el-table .stage-tone-2 { background: #f3effc; }
-.yobot-ui .ui-performance .performance-ranking.el-table .total-score { background: #e8e6fc; color: #5146aa; font-weight: 650; }
-.ui-performance .performance-ranking.el-table td, .ui-performance .performance-ranking.el-table th { border-right: 1px solid #fff; }
-@media (prefers-reduced-motion: no-preference) {
-  .ui-performance .heading h1, .ui-performance .section-heading h2 { animation: ui-surface-in .55s ease backwards; }
-}
+.yobot-ui .ui-performance .el-table { box-shadow: none; border: 0; border-radius: 8px; font-size: 13px; }
+.yobot-ui .ui-performance .el-table th { background: #f6f7f8; color: #7a8792; font-size: 12px; font-weight: 600; }
+.yobot-ui .ui-performance .el-table td { padding: 16px 0; font-variant-numeric: tabular-nums; }
+.yobot-ui .ui-performance .performance-ranking.el-table .total-count { background: #f8f9fa; }
+.yobot-ui .ui-performance .performance-ranking.el-table .stage-tone-0 { background: #f0f5fa; }
+.yobot-ui .ui-performance .performance-ranking.el-table .stage-tone-1 { background: #f0f6f3; }
+.yobot-ui .ui-performance .performance-ranking.el-table .stage-tone-2 { background: #f5f2f8; }
+.yobot-ui .ui-performance .performance-ranking.el-table .total-score { background: #efedff; color: #5146aa; }
+.ui-performance .performance-ranking td, .ui-performance .performance-ranking th { border-right: 1px solid rgba(255,255,255,.85); }
+.ui-performance .score-pill { display: inline-block; padding: 5px 14px; border-radius: 6px; background: #e4dfff; font-size: 15px; font-weight: 650; }
+.ui-performance .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; color: #8f9aa4; }
+.ui-performance .rank-top { border-radius: 50%; background: #f2eee4; color: #947b4c; font-weight: 600; }
+.ui-performance .rules-panel { background: white; border: 1px solid var(--ui-border); border-radius: 16px; box-shadow: var(--ui-shadow); margin: 20px 0; }
+.ui-performance .rules-panel summary { padding: 20px 26px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
+.ui-performance .rules-panel summary::-webkit-details-marker { display: none; }
+.ui-performance .rules-state { color: #86948e; font-size: 12px; }
+.ui-performance .rules-panel[open] summary { border-bottom: 1px solid #edf0f2; }
+.ui-performance .rules-panel[open] summary i { transform: rotate(180deg); }
+.ui-performance .rules-panel section { margin: 0; border: 0; }
 @media (max-width: 600px) {
-  .ui-performance header { padding: 18px 16px; gap: 10px; }
-  .ui-performance .heading, .ui-performance section { padding: 20px 14px; }
-  .ui-performance .heading h1 { font-size: 23px; }
+  .ui-performance .heading { padding: 24px 0; }
+  .ui-performance .heading h1 { font-size: 27px; }
+  .ui-performance section { padding: 20px 14px; }
   .ui-performance .heading, .ui-performance .section-heading { align-items: flex-start; }
-  .ui-performance .archive { width: 100%; gap: 12px; }
+  .ui-performance .archive { width: 100%; gap: 10px; padding: 12px; }
+  .ui-performance .performance-metrics > div { padding: 16px 12px; }
+  .ui-performance .performance-metrics strong { font-size: 23px; }
   .ui-performance .actions .el-button { flex: 1 1 130px; }
+  .ui-performance .rules-panel summary { padding: 18px 14px; }
 }
+
+/* Ranking typography and stage colors build on the PR #2 theme. */
+.yobot-ui .ui-performance .performance-ranking.el-table { border: 1px solid var(--ui-border); border-radius: 12px; }
+.yobot-ui .ui-performance .performance-ranking.el-table td { padding: 18px 0; }
+.yobot-ui .ui-performance .performance-ranking.el-table th { height: 54px; color: #52637b; background: #f1f5fc; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-0 { background: #e8f0fc; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-1 { background: #e8f3ee; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-2 { background: #eee9f8; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.total-score { background: #e5e0fb; }
+.ui-performance .member-identity { display: flex; gap: 12px; align-items: center; text-align: left; }
+.ui-performance .member-avatar { flex: 0 0 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 11px; background: linear-gradient(140deg, #eeeaff, #e5effb); color: #6660b4; font-weight: 600; }
+.ui-performance .member-name { display: block; font-size: 14px; font-weight: 550; color: #33445e; word-break: break-word; }
+.ui-performance .member-id { display: block; font-size: 10px; color: #8a97ab; margin-top: 2px; line-height: 1.4; }
+.ui-performance .rank-badge { border-radius: 9px; width: 28px; height: 28px; font-variant-numeric: tabular-nums; }
+.ui-performance .rank-top { background: #fff2d7; color: #a67a2e; }
+.ui-performance .rank-second { background: #eaf0f9; color: #627aa0; }
+.ui-performance .rank-third { background: #faeae2; color: #ad775b; }
+.ui-performance .score-pill { min-width: 60px; padding: 6px 12px; font-size: 16px; border-radius: 8px; }
+.yobot-ui .ui-performance .performance-ranking.el-table .el-table__body tr:hover > td { box-shadow: inset 0 0 0 999px rgba(79,70,229,.025); }
+.ui-performance header span { letter-spacing: 1px; font-weight: 550; }
+
+/* White data cells with restrained stage cues instead of solid column bands. */
+.yobot-ui .ui-performance .performance-ranking.el-table td.total-count,
+.yobot-ui .ui-performance .performance-ranking.el-table td.stage-tone-0,
+.yobot-ui .ui-performance .performance-ranking.el-table td.stage-tone-1,
+.yobot-ui .ui-performance .performance-ranking.el-table td.stage-tone-2,
+.yobot-ui .ui-performance .performance-ranking.el-table td.total-score { background: #fff; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.total-count { background: linear-gradient(180deg, #f5f7fb, #fafbfd); }
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-0 { background: linear-gradient(180deg, #edf3fc, #fafcfe); box-shadow: inset 0 2px #bdcfee; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-1 { background: linear-gradient(180deg, #edf5f1, #fbfdfc); box-shadow: inset 0 2px #bcd8ca; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-2 { background: linear-gradient(180deg, #f2eef9, #fcfbfe); box-shadow: inset 0 2px #d0c2e9; }
+.yobot-ui .ui-performance .performance-ranking.el-table th.total-score { background: linear-gradient(180deg, #ece8ff, #f8f6ff); box-shadow: inset 0 2px #b7a8f0; }
+.yobot-ui .ui-performance .performance-ranking.el-table td.total-count,
+.yobot-ui .ui-performance .performance-ranking.el-table td.total-score { border-left: 1px solid #edf0f7; }
+.yobot-ui .ui-performance .performance-ranking.el-table .el-table__body tr:hover > td { background: #f8faff; box-shadow: none; }
+.ui-performance .score-pill { background: linear-gradient(135deg, #f0ecff, #f6f3ff); border: 1px solid #e7e0fc; box-shadow: 0 2px 5px rgba(79, 70, 229, .035); }
+
+/* Fine woven texture stays in the header and score accents, away from data. */
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-0 {
+  background-image: repeating-linear-gradient(135deg, rgba(83, 119, 174, .045) 0, rgba(83, 119, 174, .045) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #edf3fc, #fafcfe);
+}
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-1 {
+  background-image: repeating-linear-gradient(135deg, rgba(71, 131, 103, .045) 0, rgba(71, 131, 103, .045) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #edf5f1, #fbfdfc);
+}
+.yobot-ui .ui-performance .performance-ranking.el-table th.stage-tone-2 {
+  background-image: repeating-linear-gradient(135deg, rgba(128, 99, 166, .045) 0, rgba(128, 99, 166, .045) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #f2eef9, #fcfbfe);
+}
+.yobot-ui .ui-performance .performance-ranking.el-table th.total-score {
+  background-image: repeating-linear-gradient(135deg, rgba(100, 78, 175, .055) 0, rgba(100, 78, 175, .055) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #ece8ff, #f8f6ff);
+}
+.ui-performance .score-pill {
+  background-image: radial-gradient(rgba(109, 87, 180, .07) .6px, transparent .6px), linear-gradient(135deg, #f0ecff, #f6f3ff);
+  background-size: 4px 4px, 100% 100%;
+}
+
+/* Textured data surface: alternating paper tones with soft stage washes. */
+.yobot-ui .ui-performance .performance-ranking.el-table td {
+  background-color: #f9faff;
+  background-image: radial-gradient(rgba(77, 94, 140, .07) .6px, transparent .7px), linear-gradient(125deg, rgba(231, 237, 249, .32), rgba(255, 255, 255, .65));
+  background-size: 5px 5px, 100% 100%;
+}
+.yobot-ui .ui-performance .performance-ranking.el-table tr:nth-child(even) td { background-color: #f0f3fa; }
+.yobot-ui .ui-performance .performance-ranking.el-table td.total-count { background-color: #f4f6fb; }
+.yobot-ui .ui-performance .performance-ranking.el-table td.stage-tone-0 {
+  background-color: #f0f5fc;
+  background-image: radial-gradient(rgba(77, 108, 163, .075) .6px, transparent .7px), linear-gradient(120deg, rgba(215, 230, 249, .3), rgba(250, 252, 255, .7));
+}
+.yobot-ui .ui-performance .performance-ranking.el-table td.stage-tone-1 {
+  background-color: #f0f7f4;
+  background-image: radial-gradient(rgba(68, 119, 96, .075) .6px, transparent .7px), linear-gradient(120deg, rgba(218, 236, 227, .3), rgba(251, 254, 252, .7));
+}
+.yobot-ui .ui-performance .performance-ranking.el-table td.stage-tone-2 {
+  background-color: #f5f1fa;
+  background-image: radial-gradient(rgba(114, 84, 153, .075) .6px, transparent .7px), linear-gradient(120deg, rgba(229, 219, 242, .3), rgba(253, 251, 255, .7));
+}
+.yobot-ui .ui-performance .performance-ranking.el-table td.total-score {
+  background-color: #f1edfc;
+  background-image: radial-gradient(rgba(100, 78, 175, .075) .6px, transparent .7px), linear-gradient(120deg, rgba(219, 208, 249, .45), rgba(250, 247, 255, .65));
+}
+.yobot-ui .ui-performance .performance-ranking.el-table .el-table__body tr:hover > td {
+  box-shadow: inset 0 0 0 999px rgba(91, 113, 190, .045);
+}
+
+.yobot-ui .ui-performance .performance-ranking.el-table td[class] { background-size: 5px 5px, 100% 100%; }
