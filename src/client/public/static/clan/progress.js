@@ -87,7 +87,7 @@ var vm = new Vue({
             if (cha == undefined) {
                 return '';
             }
-            var seconds = cha.health_remain === 0 && cha.return_seconds != null
+            var seconds = cha.health_remain === 0 && !cha.is_continue && cha.return_seconds != null
                 ? ` · 返${this.returnSeconds(cha.return_seconds)}` : '';
             return `(${cha.cycle}-${cha.boss_num}) <a class="digit${cha.damage.toString().length}">${cha.damage}</a>${seconds}`;
         },

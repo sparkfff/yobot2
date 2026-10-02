@@ -31,7 +31,7 @@ class SelectedCompensationDisplayTests(unittest.IsolatedAsyncioTestCase):
         first = self.record(41)
         selected = self.record(80)
         third = self.record(60)
-        self.record(compensation=True, source=selected.cid)
+        consumed = self.record(90, compensation=True, source=selected.cid)
         with patch.object(realize, 'get_process_image', wraps=realize.get_process_image) as render:
             self.battle.challenger_info(100)
         self.assertEqual(render.call_args.args[1]['补偿']['10'], '10 41s / 60s')
@@ -41,6 +41,7 @@ class SelectedCompensationDisplayTests(unittest.IsolatedAsyncioTestCase):
             report = (await self.call(dict(action='get_challenge', ts=None)))['challenges']
         editable = {r['record_id'] for r in report if r['can_edit_return_seconds']}
         self.assertEqual(editable, {first.cid, third.cid})
+        self.assertIsNone(next(r for r in report if r['record_id'] == consumed.cid)['return_seconds'])
         rejected = await self.call(dict(action='set_return_seconds',
             record_id=selected.cid, return_seconds=70))
         self.assertEqual(rejected['code'], 30)
@@ -79,6 +80,8 @@ const rec = (id, seconds, cont = false, source = null) => ({record_id: id,
     qqid: 10, cycle: 1, boss_num: 1, challenge_time: 1700000000,
     health_remain: 0, damage: 20, is_continue: cont,
     return_seconds: seconds, consumed_tail_id: source});
+assert(!app.csummary(rec(99, 90, true)).includes('返'));
+assert(app.csummary(rec(98, 90)).includes('返90s'));
 const records = [rec(1, 41), rec(2, 80), rec(3, 60), rec(4, null, true, 2)];
 app.refresh(records);
 let detail = app.progressData[0].detail;

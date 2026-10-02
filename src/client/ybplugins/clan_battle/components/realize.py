@@ -1226,7 +1226,7 @@ def get_report(self,
 			'is_continue': c.is_continue,
 			'message': c.message,
 			'return_seconds': effective_return_seconds(self, c.boss_cycle, group.game_server, c.return_seconds)
-				if c.boss_health_remain == 0 else None,
+				if c.boss_health_remain == 0 and not c.is_continue else None,
 			'behalf': c.behalf,
 		})
 	return report
