@@ -159,7 +159,7 @@ def execute(self, match_num, ctx):
 			# 尝试使用另外的匹配模式
 			match = re.match(r'^(?:报刀|刀) ?([1-5])? (\d+)?([Ww万Kk千])? *(补偿|补|b|bc|B|BC|Bc|bC)? *(?:\[CQ:at,qq=(\d+)(?:,name=[^\]]*)?\])? *(昨[日天])? *(?:(\d+)[sS秒])? *$', cmd)
 			if not match:
-				return '报刀格式:\n报刀 100w（需先申请出刀）\n报刀 -1 100w（-1表示报在1王）\n报刀 1 3000wb 80s（指定消耗80秒补偿）'
+				return '报刀格式:\n报刀 100w（需先申请出刀）\n报刀 -1 100w（-1表示报在1王）\n报刀 1 3000w 80s（指定消耗80秒补偿）'
 		unit = {
 			'W': 10000,
 			'w': 10000,
@@ -280,7 +280,7 @@ def execute(self, match_num, ctx):
 
 	elif match_num == 12:  # 申请
 		match = re.match(r'^(?:进|申请出刀)(| )([1-5]) *(补偿|补|b|bc|B|BC|Bc|bC)? *(?:\[CQ:at,qq=(\d+)(?:,name=[^\]]*)?\])? *(?:(\d+)[sS秒])? *$', cmd)
-		if not match: return '申请出刀格式错误惹(っ °Д °;)っ\n如：申请出刀1 or 进1b 80s（指定80秒补偿）'
+		if not match: return '申请出刀格式错误惹(っ °Д °;)っ\n如：申请出刀1 or 进1 80s（指定80秒补偿）'
 		boss_num = match.group(2)
 		is_continue = match.group(3) and True or False
 		behalf = match.group(4) and int(match.group(4))

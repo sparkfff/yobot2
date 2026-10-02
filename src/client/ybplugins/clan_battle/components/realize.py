@@ -796,11 +796,11 @@ def apply_for_challenge(self, is_continue, group_id:Groupid, qqid:QQid, boss_num
 	challenges = list(challenges)
 	counts = count_blades(challenges)
 	if counts.finished >= 3: raise GroupError('今日已出了3次完整刀')
+	if compensation_seconds is not None:
+		is_continue = True
 	if is_continue and counts.compensation <= 0:
 		raise GroupError('您没有补偿刀')
 	is_continue = counts.choose_compensation(is_continue)
-	if compensation_seconds is not None and not is_continue:
-		raise InputError('指定补偿秒数时请加b')
 	selected_tail = select_compensation(self, challenges, group.game_server, compensation_seconds) if compensation_seconds is not None else None
 	
 	nik = self._get_nickname_by_qqid(challenger)

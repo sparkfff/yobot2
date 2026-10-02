@@ -156,6 +156,8 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
     """Validate a report, then atomically update records and clan state."""
     if not isinstance(defeat, bool) or not isinstance(is_continue, bool):
         raise InputError('尾刀和补偿标记必须是布尔值')
+    if compensation_seconds is not None:
+        is_continue = True
     if return_seconds is not None:
         if not defeat:
             raise InputError('仅尾刀可记录返秒')
@@ -221,8 +223,6 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
         is_continue = counts.choose_compensation(is_continue)
     if is_continue and counts.compensation <= 0:
         raise GroupError('您没有补偿刀')
-    if compensation_seconds is not None and not is_continue:
-        raise InputError('指定补偿秒数时请加b或先申请补偿刀')
     selected_tail = None
     if is_continue:
         source_id = (previous_application.compensation_tail_id

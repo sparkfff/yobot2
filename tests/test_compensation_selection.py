@@ -84,7 +84,7 @@ class CompensationSelectionTests(unittest.IsolatedAsyncioTestCase):
     async def test_missing_invalid_seconds_and_stale_application_never_mutate(self):
         first = self.tail(60)
         original = self.group().now_cycle_boss_health
-        for text in ('报刀 1 1b 80s', '报刀 1 1b 20s', '报刀 1 1 60s'):
+        for text in ('报刀 1 1b 80s', '报刀 1 1b 20s', '报刀 1 1 80s'):
             reply = self.command(text, 4)
             self.assertTrue('没有可用' in reply or '21至90' in reply or '请加b' in reply)
             self.assertEqual(Clan_challenge.select().count(), 1)
@@ -117,3 +117,14 @@ class CompensationSelectionTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(self.battle, 'apply_for_challenge', return_value='ok') as apply:
             self.assertEqual(self.command('进1b 80s', 12), 'ok')
             self.assertEqual(apply.call_args.kwargs['compensation_seconds'], 80)
+
+    async def test_seconds_imply_compensation_without_b(self):
+        first = self.tail(60)
+        selected = self.tail(80)
+        self.assertIn('已选定补偿：80s', self.command('进1 80s', 12))
+        self.assertTrue(ChallengeState.from_json(self.group().challenging_member_list).get(1, 10).is_continue)
+        self.assertIn('已消耗补偿：80s', self.command('报刀 1 1 80s', 4))
+        record = Clan_challenge.select().order_by(Clan_challenge.cid.desc()).get()
+        self.assertTrue(record.is_continue)
+        self.assertEqual(record.consumed_tail_id, selected.cid)
+        self.assertEqual(self.pending(), [first.cid])
