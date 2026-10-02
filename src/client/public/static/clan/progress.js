@@ -150,7 +150,7 @@ var vm = new Vue({
             this.today = -1;
         },
         refresh: function (challenges) {
-            challenges.sort((a, b) => a.qqid - b.qqid);
+            challenges.sort((a, b) => a.qqid - b.qqid || a.record_id - b.record_id);
             this.progressData = [...this.members];
             var thisvue = this;
             var m = { qqid: -1 };
@@ -164,12 +164,21 @@ var vm = new Vue({
                     }
                 }
 
-                for (id of this.tempList){
-                    if (!m.detail[id]) {
-                        if (id%2 == 1 && c.is_continue && m.detail[id-1] && m.detail[id-1].health_remain == 0) {
+                let assigned = false;
+                if (c.is_continue) {
+                    for (const id of this.tempList) {
+                        const tail = m.detail[id - 1];
+                        if (id%2 == 1 && !m.detail[id] && tail && tail.health_remain == 0 && !tail.is_continue &&
+                            (c.consumed_tail_id == null || tail.record_id === c.consumed_tail_id)) {
                             m.detail[id] = c;
+                            assigned = true;
                             break;
-                        } else if (id%2 == 0) {
+                        }
+                    }
+                }
+                if (!assigned) {
+                    for (const id of this.tempList) {
+                        if (id%2 == 0 && !m.detail[id]) {
                             m.detail[id] = c;
                             break;
                         }

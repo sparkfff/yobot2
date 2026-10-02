@@ -16,11 +16,12 @@ class ApplicationState:
     tree: bool = False
     msg: Optional[str] = None
     damage_message: Optional[str] = None
+    compensation_tail_id: Optional[int] = None
     extra: Dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
     def from_dict(cls, data):
-        known = {'is_continue', 'behalf', 's', 'damage', 'tree', 'msg', 'damage_message'}
+        known = {'is_continue', 'behalf', 's', 'damage', 'tree', 'msg', 'damage_message', 'compensation_tail_id'}
         values = {key: deepcopy(value) for key, value in data.items() if key in known}
         values['extra'] = {key: deepcopy(value) for key, value in data.items() if key not in known}
         return cls(**values)
@@ -31,6 +32,8 @@ class ApplicationState:
                       damage=self.damage, tree=self.tree, msg=self.msg)
         if self.damage_message:
             result['damage_message'] = self.damage_message
+        if self.compensation_tail_id is not None:
+            result['compensation_tail_id'] = self.compensation_tail_id
         return result
 
 

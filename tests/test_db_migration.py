@@ -39,7 +39,7 @@ class DatabaseMigrationTests(unittest.TestCase):
         ybdata._db.create_tables(
             [model for model in LEGACY_MODELS if model != ybdata.Clan_challenge]
             + [ybdata.DB_schema])
-        # Real pre-v4 layout: the current model must not create the new column.
+        # Real legacy layout: the current model must not create new columns.
         ybdata._db.execute_sql('''CREATE TABLE clan_challenge (
             cid INTEGER PRIMARY KEY, bid INTEGER NOT NULL, gid INTEGER NOT NULL,
             qqid INTEGER NOT NULL, challenge_pcrdate INTEGER NOT NULL,
@@ -47,6 +47,8 @@ class DatabaseMigrationTests(unittest.TestCase):
             boss_num INTEGER NOT NULL, boss_health_remain INTEGER NOT NULL,
             challenge_damage INTEGER NOT NULL, is_continue INTEGER NOT NULL,
             message TEXT, behalf INTEGER)''')
+        if version >= 4:
+            ybdata._db.execute_sql('ALTER TABLE clan_challenge ADD COLUMN return_seconds INTEGER')
         if version >= 3:
             ybdata.Clan_challenge_undo.create_table()
         ybdata.DB_schema.create(key='version', value=str(version))
@@ -60,6 +62,8 @@ class DatabaseMigrationTests(unittest.TestCase):
             boss_health_remain=400, challenge_damage=100,
             is_continue=True, message='legacy report', behalf=789,
         )
+        if version >= 4:
+            record['return_seconds'] = 41
         columns = ', '.join(record)
         placeholders = ', '.join('?' for _ in record)
         ybdata._db.execute_sql(
@@ -68,13 +72,13 @@ class DatabaseMigrationTests(unittest.TestCase):
         return record
 
     def report_data(self):
-        # This also works before migration, when return_seconds is absent.
+        # This also works before migration, when new fields are absent.
         cursor = ybdata._db.execute_sql('SELECT * FROM clan_challenge')
         return dict(zip([column[0] for column in cursor.description], cursor.fetchone()))
 
     def assert_migrated_report(self, original):
         self.assertEqual(ybdata.Clan_challenge.get().__data__,
-                         dict(original, return_seconds=None))
+                         dict({'return_seconds': None, 'consumed_tail_id': None}, **original))
 
     def version(self):
         return ybdata.DB_schema.get(key='version').value
@@ -83,7 +87,7 @@ class DatabaseMigrationTests(unittest.TestCase):
         original = self.legacy_database()
         original_tables = set(ybdata._db.get_tables())
         ybdata.init(self.filename)
-        self.assertEqual(self.version(), '4')
+        self.assertEqual(self.version(), '5')
         self.assert_migrated_report(original)
         self.assertEqual(ybdata.User.get().nickname, 'legacy member')
         self.assertEqual(ybdata.Clan_member.get().role, 10)
@@ -97,16 +101,18 @@ class DatabaseMigrationTests(unittest.TestCase):
         log = ybdata.Clan_challenge_undo.create(
             cid=original['cid'], gid=456, bid=2,
             before_state='{"health":500}', after_state='{"health":400}')
+        ybdata.Clan_challenge.update(consumed_tail_id=99).execute()
         ybdata.init(self.filename)
         ybdata.init(self.filename)
-        self.assertEqual(self.version(), '4')
-        self.assert_migrated_report(original)
+        self.assertEqual(self.version(), '5')
+        self.assertEqual(ybdata.Clan_challenge.get().__data__,
+                         dict(original, return_seconds=None, consumed_tail_id=99))
         self.assertEqual(ybdata.Clan_challenge_undo.get().__data__, log.__data__)
         self.assertEqual(ybdata.Clan_challenge_undo.select().count(), 1)
 
     def test_new_database_creates_schema_and_expected_undo_index(self):
         ybdata.init(self.filename)
-        self.assertEqual(self.version(), '4')
+        self.assertEqual(self.version(), '5')
         for model in LEGACY_MODELS + [ybdata.Clan_challenge_undo]:
             self.assertTrue(model.table_exists())
         table = ybdata.Clan_challenge_undo._meta.table_name
@@ -118,6 +124,7 @@ class DatabaseMigrationTests(unittest.TestCase):
         self.assertEqual(ybdata._db.get_foreign_keys(table), [])
         columns = {column.name: column for column in ybdata._db.get_columns('clan_challenge')}
         self.assertTrue(columns['return_seconds'].null)
+        self.assertTrue(columns['consumed_tail_id'].null)
 
     def test_migration_failure_rolls_back_table_and_version(self):
         original = self.legacy_database()
@@ -130,18 +137,19 @@ class DatabaseMigrationTests(unittest.TestCase):
         self.assertFalse(ybdata.Clan_challenge_undo.table_exists())
         self.assertEqual(self.report_data(), original)
         self.assertNotIn('return_seconds', self.report_data())
+        self.assertNotIn('consumed_tail_id', self.report_data())
         ybdata.init(self.filename)
-        self.assertEqual(self.version(), '4')
+        self.assertEqual(self.version(), '5')
 
     def test_newer_version_rejected_before_any_missing_table_is_created(self):
         ybdata.DB_schema.create_table()
-        ybdata.DB_schema.create(key='version', value='5')
+        ybdata.DB_schema.create(key='version', value='6')
         original_tables = set(ybdata._db.get_tables())
         self.assertFalse(ybdata.User.table_exists())
         with self.assertRaises(SystemExit):
             ybdata.init(self.filename)
         self.assertEqual(set(ybdata._db.get_tables()), original_tables)
-        self.assertEqual(self.version(), '5')
+        self.assertEqual(self.version(), '6')
         self.assertFalse(ybdata.Clan_challenge_undo.table_exists())
 
     def test_version_one_subscription_conversion_and_log_upgrade_are_atomic(self):
@@ -153,7 +161,7 @@ class DatabaseMigrationTests(unittest.TestCase):
         self.assertEqual(self.version(), '1')
         self.assertEqual(ybdata.Clan_group.get().subscribe_list, '{"1":[123,789]}')
         ybdata.init(self.filename)
-        self.assertEqual(self.version(), '4')
+        self.assertEqual(self.version(), '5')
         self.assertEqual(json.loads(ybdata.Clan_group.get().subscribe_list),
                          {'1': {'123': None, '789': None}})
         self.assert_migrated_report(original)
@@ -163,12 +171,34 @@ class DatabaseMigrationTests(unittest.TestCase):
         log = ybdata.Clan_challenge_undo.create(
             cid=1, gid=456, bid=2, before_state='before', after_state='after')
         ybdata.init(self.filename)
-        self.assertEqual(self.version(), '4')
+        self.assertEqual(self.version(), '5')
         self.assert_migrated_report(original)
         self.assertEqual(ybdata.Clan_challenge_undo.get().__data__, log.__data__)
         ybdata.Clan_challenge.update(return_seconds=41).execute()
         ybdata.init(self.filename)
         self.assertEqual(ybdata.Clan_challenge.get().return_seconds, 41)
+
+    def test_version_four_preserves_return_seconds_and_undo_logs(self):
+        original = self.legacy_database(version=4)
+        log = ybdata.Clan_challenge_undo.create(
+            cid=1, gid=456, bid=2, before_state='before', after_state='after')
+        self.assertNotIn('consumed_tail_id', self.report_data())
+        ybdata.init(self.filename)
+        self.assertEqual(self.version(), '5')
+        self.assert_migrated_report(original)
+        self.assertEqual(ybdata.Clan_challenge_undo.get().__data__, log.__data__)
+
+    def test_version_four_migration_failure_rolls_back_column_and_version(self):
+        original = self.legacy_database(version=4)
+        with patch.object(ybdata.DB_schema, 'replace', side_effect=RuntimeError('injected failure')):
+            with self.assertRaisesRegex(RuntimeError, 'injected failure'):
+                ybdata.init(self.filename)
+        self.assertEqual(self.version(), '4')
+        self.assertEqual(self.report_data(), original)
+        self.assertNotIn('consumed_tail_id', self.report_data())
+        ybdata.init(self.filename)
+        self.assertEqual(self.version(), '5')
+        self.assert_migrated_report(original)
 
 
 if __name__ == '__main__':

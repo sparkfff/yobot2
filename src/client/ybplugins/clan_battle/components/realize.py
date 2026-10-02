@@ -8,7 +8,7 @@ import random
 import string
 import asyncio
 from collections import Counter
-from .tail_return_seconds import effective_return_seconds
+from .tail_return_seconds import effective_return_seconds, pending_compensations, select_compensation
 import logging
 from pathlib import Path
 from io import BytesIO
@@ -475,10 +475,11 @@ def boss_status_summary(self, group_id:Groupid) -> str:
 
 #报刀
 def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
-              is_continue=False, *, boss_num=None, previous_day=False, return_seconds=None):
+              is_continue=False, *, boss_num=None, previous_day=False, return_seconds=None, compensation_seconds=None):
     from .battle_service import challenge as report
     return report(self, group_id, qqid, defeat, damage, behalfed, is_continue,
-                  boss_num=boss_num, previous_day=previous_day, return_seconds=return_seconds)
+                  boss_num=boss_num, previous_day=previous_day, return_seconds=return_seconds,
+                  compensation_seconds=compensation_seconds)
 
 #撤销上一刀的伤害
 def undo(self, group_id, qqid):
@@ -758,7 +759,7 @@ def check_next_boss(self, group_id:Groupid, boss_num):
 
 #申请出刀
 @atomic_battle_operation
-def apply_for_challenge(self, is_continue, group_id:Groupid, qqid:QQid, boss_num, behalfed = None, send_web=True) :
+def apply_for_challenge(self, is_continue, group_id:Groupid, qqid:QQid, boss_num, behalfed = None, send_web=True, *, compensation_seconds=None) :
 	"""
 	Args:
 		is_continue: 是否是补偿刀
@@ -795,14 +796,20 @@ def apply_for_challenge(self, is_continue, group_id:Groupid, qqid:QQid, boss_num
 	challenges = list(challenges)
 	counts = count_blades(challenges)
 	if counts.finished >= 3: raise GroupError('今日已出了3次完整刀')
+	if compensation_seconds is not None:
+		is_continue = True
 	if is_continue and counts.compensation <= 0:
 		raise GroupError('您没有补偿刀')
 	is_continue = counts.choose_compensation(is_continue)
+	selected_tail = select_compensation(self, challenges, group.game_server, compensation_seconds) if compensation_seconds is not None else None
 	
 	nik = self._get_nickname_by_qqid(challenger)
 	info = [f'{nik}已开始挑战boss，剩最后几秒的时候记得暂停报伤害哦~']
 	handler = ChallengeHandler(group)
-	handler.state.apply(boss_num, challenger, is_continue, behalf)
+	application = handler.state.apply(boss_num, challenger, is_continue, behalf)
+	if selected_tail:
+		application.compensation_tail_id = selected_tail.cid
+		info.append(f'已选定补偿：{compensation_seconds}s')
 	handler.save()
 
 	self.challenger_info_small(group, boss_num, info)
@@ -1019,14 +1026,9 @@ def challenger_info(self, group_id):
 		Clan_challenge.challenge_pcrdate == date,
 	).order_by(Clan_challenge.cid)
 	end_blade_qqid = {}         #按出刀顺序保存每个成员未使用的补偿返秒
-	for c in challenges:
-		#如果出完这刀时boss的血量为0，且不是收尾刀
-		if c.boss_health_remain == 0 and not c.is_continue:
-			seconds = effective_return_seconds(self, c.boss_cycle, group.game_server, c.return_seconds)
-			end_blade_qqid.setdefault(c.qqid, []).append(seconds)
-		if c.is_continue and c.qqid in end_blade_qqid:
-			end_blade_qqid[c.qqid].pop(0)
-			if not end_blade_qqid[c.qqid]: del end_blade_qqid[c.qqid]
+	for c in pending_compensations(self, challenges, group.game_server):
+		seconds = effective_return_seconds(self, c.boss_cycle, group.game_server, c.return_seconds)
+		end_blade_qqid.setdefault(c.qqid, []).append(seconds)
 
 	finish_challenge_count = sum(bool(c.boss_health_remain or c.is_continue) for c in challenges)
 
@@ -1206,6 +1208,7 @@ def get_report(self,
 	).order_by(Clan_challenge.cid):
 		report.append({
 			'record_id': c.cid,
+			'consumed_tail_id': c.consumed_tail_id,
 			'recorded_return_seconds': c.return_seconds,
 			'battle_id': c.bid,
 			'qqid': c.qqid,
