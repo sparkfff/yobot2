@@ -9,7 +9,7 @@ _logger = logging.getLogger(__name__)
 
 db_mode = True  # True为本地（原），Flase为为改为mysql（需要在第15行配置使用）
 
-_version = 4  # 目前版本
+_version = 5  # 目前版本
 MAX_TRY_TIMES = 5
 
 if db_mode:
@@ -138,6 +138,7 @@ class Clan_challenge(_BaseModel):
     message = TextField(null=True)  # 信息
     behalf = IntegerField(null=True)  # 代刀人
     return_seconds = IntegerField(null=True)  # 尾刀获得的补偿秒数
+    consumed_tail_id = IntegerField(null=True)  # 本刀消耗的补偿来源尾刀 cid
 
     class Meta:
         indexes = (
@@ -246,4 +247,8 @@ def _upgrade_in_transaction(old_version):
         migrator = SqliteMigrator(_db) if db_mode else MySQLMigrator(_db)
         migrate(migrator.add_column(
             Clan_challenge._meta.table_name, "return_seconds", IntegerField(null=True)))
+    if old_version < 5:
+        migrator = SqliteMigrator(_db) if db_mode else MySQLMigrator(_db)
+        migrate(migrator.add_column(
+            Clan_challenge._meta.table_name, "consumed_tail_id", IntegerField(null=True)))
     DB_schema.replace(key="version", value=str(_version)).execute()

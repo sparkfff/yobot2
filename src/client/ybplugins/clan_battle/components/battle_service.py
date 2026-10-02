@@ -18,7 +18,7 @@ from .challenge_state import ChallengeState
 from .report_undo import BattleSnapshot, reverse_report
 from .battle_state import after_commit, atomic_battle_operation, count_blades, validate_battle_id, validate_boss_number
 from .performance import forget_weights
-from .tail_return_seconds import effective_return_seconds
+from .tail_return_seconds import effective_return_seconds, select_compensation
 from .realize import get_clan_group, safe_load_json, future_operation, check_next_boss, subscribe_remind, send_group_notification
 
 _logger = logging.getLogger(__name__)
@@ -152,7 +152,7 @@ def switch_data_slot(self, group_id: Groupid, battle_id: int):
 
 @atomic_battle_operation
 def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
-              is_continue=False, *, boss_num=None, previous_day=False, return_seconds=None):
+              is_continue=False, *, boss_num=None, previous_day=False, return_seconds=None, compensation_seconds=None):
     """Validate a report, then atomically update records and clan state."""
     if not isinstance(defeat, bool) or not isinstance(is_continue, bool):
         raise InputError('尾刀和补偿标记必须是布尔值')
@@ -210,15 +210,25 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
         Clan_challenge.gid == group_id, Clan_challenge.qqid == qqid,
         Clan_challenge.bid == group.battle_id,
         Clan_challenge.challenge_pcrdate == date).order_by(Clan_challenge.cid)
+    records = list(records)
     counts = count_blades(records)
     if counts.finished >= 3:
         raise InputError('昨日上报次数已达到3次' if previous_day else '今日上报次数已达到3次')
-    if not explicit_boss and previous_application:
+    if previous_application and (not explicit_boss or (
+            not previous_day and previous_application.compensation_tail_id is not None)):
         is_continue = bool(is_continue or previous_application.is_continue)
     else:
         is_continue = counts.choose_compensation(is_continue)
     if is_continue and counts.compensation <= 0:
         raise GroupError('您没有补偿刀')
+    if compensation_seconds is not None and not is_continue:
+        raise InputError('指定补偿秒数时请加b或先申请补偿刀')
+    selected_tail = None
+    if is_continue:
+        source_id = (previous_application.compensation_tail_id
+                     if previous_application and not previous_day and compensation_seconds is None else None)
+        selected_tail = select_compensation(self, records, group.game_server,
+                                           compensation_seconds, source_id)
 
     # All rejection paths above leave the database and application state intact.
     challenge_damage = target_health[boss_num] if defeat else damage
@@ -232,7 +242,7 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
         boss_cycle=boss_cycle, boss_num=int(boss_num),
         boss_health_remain=health_remaining,
         challenge_damage=challenge_damage, is_continue=is_continue, behalf=behalf,
-        return_seconds=return_seconds)
+        return_seconds=return_seconds, consumed_tail_id=selected_tail.cid if selected_tail else None)
 
     rollover_notices = []
     if defeat and all(health == 0 for health in now_health.values()):
@@ -280,6 +290,9 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
             '剩余刀' if is_continue else '完整刀')
     if return_seconds is not None:
         message += f'返秒：{return_seconds}s\n'
+    if selected_tail:
+        seconds = effective_return_seconds(self, selected_tail.boss_cycle, group.game_server, selected_tail.return_seconds)
+        message += f'已消耗补偿：{str(seconds) if seconds is not None else "?"}s\n'
     message += '\n'.join(self.challenger_info_small(group, boss_num))
     Clan_challenge_undo.create(cid=report.cid, gid=group_id, bid=group.battle_id,
                                before_state=before.dumps(),

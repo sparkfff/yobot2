@@ -154,12 +154,12 @@ def execute(self, match_num, ctx):
 
 
 	elif match_num == 4:  # 报刀
-		match = re.match(r'^(?:报刀|刀) ?(?:[\-\=]([1-5]))? ?(\d+)?([Ww万Kk千])? *(补偿|补|b|bc|B|BC|Bc|bC)? *(?:\[CQ:at,qq=(\d+)(?:,name=[^\]]*)?\])? *(昨[日天])?$', cmd)
+		match = re.match(r'^(?:报刀|刀) ?(?:[\-\=]([1-5]))? ?(\d+)?([Ww万Kk千])? *(补偿|补|b|bc|B|BC|Bc|bC)? *(?:\[CQ:at,qq=(\d+)(?:,name=[^\]]*)?\])? *(昨[日天])? *(?:(\d+)[sS秒])? *$', cmd)
 		if not match:
 			# 尝试使用另外的匹配模式
-			match = re.match(r'^(?:报刀|刀) ?([1-5])? (\d+)?([Ww万Kk千])? *(补偿|补|b|bc|B|BC|Bc|bC)? *(?:\[CQ:at,qq=(\d+)(?:,name=[^\]]*)?\])? *(昨[日天])?$', cmd)
+			match = re.match(r'^(?:报刀|刀) ?([1-5])? (\d+)?([Ww万Kk千])? *(补偿|补|b|bc|B|BC|Bc|bC)? *(?:\[CQ:at,qq=(\d+)(?:,name=[^\]]*)?\])? *(昨[日天])? *(?:(\d+)[sS秒])? *$', cmd)
 			if not match:
-				return '报刀格式:\n报刀 100w（需先申请出刀）\n报刀 -1 100w（-1表示报在1王）'
+				return '报刀格式:\n报刀 100w（需先申请出刀）\n报刀 -1 100w（-1表示报在1王）\n报刀 1 3000wb 80s（指定消耗80秒补偿）'
 		unit = {
 			'W': 10000,
 			'w': 10000,
@@ -173,9 +173,10 @@ def execute(self, match_num, ctx):
 		is_continue = match.group(4) and True or False
 		behalf = match.group(5) and int(match.group(5))
 		previous_day = bool(match.group(6))
+		compensation_seconds = int(match.group(7)) if match.group(7) is not None else None
 		try:
 			boss_status = self.challenge(group_id, user_id, False, damage, behalf, is_continue,
-				boss_num = boss_num, previous_day = previous_day)
+				boss_num = boss_num, previous_day = previous_day, compensation_seconds = compensation_seconds)
 			# if behalf:
 			# 	sender = self._get_nickname_by_qqid(user_id)
 			# 	self.behelf_remind(behalf, f'{sender}使用您的账号打出{damage*unit}伤害')
@@ -278,13 +279,14 @@ def execute(self, match_num, ctx):
 		return msg
 
 	elif match_num == 12:  # 申请
-		match = re.match(r'^(?:进|申请出刀)(| )([1-5]) *(补偿|补|b|bc|B|BC|Bc|bC)? *(?:\[CQ:at,qq=(\d+)(?:,name=[^\]]*)?\])? *$', cmd)
-		if not match: return '申请出刀格式错误惹(っ °Д °;)っ\n如：申请出刀1 or 申请出刀1补偿@xxx'
+		match = re.match(r'^(?:进|申请出刀)(| )([1-5]) *(补偿|补|b|bc|B|BC|Bc|bC)? *(?:\[CQ:at,qq=(\d+)(?:,name=[^\]]*)?\])? *(?:(\d+)[sS秒])? *$', cmd)
+		if not match: return '申请出刀格式错误惹(っ °Д °;)っ\n如：申请出刀1 or 进1b 80s（指定80秒补偿）'
 		boss_num = match.group(2)
 		is_continue = match.group(3) and True or False
 		behalf = match.group(4) and int(match.group(4))
+		compensation_seconds = int(match.group(5)) if match.group(5) is not None else None
 		try:
-			boss_info = self.apply_for_challenge(is_continue, group_id, user_id, boss_num, behalf)
+			boss_info = self.apply_for_challenge(is_continue, group_id, user_id, boss_num, behalf, compensation_seconds=compensation_seconds)
 			# if behalf:
 			# 	sender = self._get_nickname_by_qqid(user_id)
 			# 	self.behelf_remind(behalf, f'{sender}正在帮您代刀，请注意不要登录您的账号。')

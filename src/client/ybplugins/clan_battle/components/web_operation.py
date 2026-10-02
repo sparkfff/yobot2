@@ -11,6 +11,7 @@ from ...ybdata import Clan_challenge, Clan_group, Clan_member, User
 from ..exception import ClanBattleError
 from ..util import pcr_datetime, atqq
 from .realize import send_group_notification
+from .tail_return_seconds import pending_compensations
 from .performance import PerformanceError, archive_records, report as performance_report, save_config
 
 _logger = logging.getLogger(__name__)
@@ -191,14 +192,10 @@ def register_routes(self, app: Quart):
 					pcr_datetime(group.game_server, payload['ts'])[0],
 					nocache=True,
 				)
-				pending = {}
-				for record in report:
-					queue = pending.setdefault(record['qqid'], [])
-					if record['is_continue']:
-						if queue: queue.pop(0)
-					elif record['health_remain'] == 0:
-						queue.append(record['record_id'])
-				pending_ids = {cid for queue in pending.values() for cid in queue}
+				records = Clan_challenge.select().where(
+					Clan_challenge.gid == group_id, Clan_challenge.bid == group.battle_id,
+					Clan_challenge.challenge_pcrdate == pcr_datetime(group.game_server, payload['ts'])[0])
+				pending_ids = {tail.cid for tail in pending_compensations(self, records, group.game_server)}
 				is_admin = user_id != 0 and can_manage_clan(user, is_member)
 				report = [dict(record, can_edit_return_seconds=(
 					user_id != 0 and record['record_id'] in pending_ids and
@@ -228,16 +225,12 @@ def register_routes(self, app: Quart):
 						return jsonify(code=30, message='尾刀记录不存在或已失效，请刷新')
 					if record.qqid != user_id and not can_manage_clan(actor, membership):
 						return jsonify(code=11, message='仅可修改自己的返秒')
-					pending = []
-					for candidate in Clan_challenge.select().where(
+					records = Clan_challenge.select().where(
 						Clan_challenge.gid == group_id, Clan_challenge.bid == current_group.battle_id,
 						Clan_challenge.qqid == record.qqid,
 						Clan_challenge.challenge_pcrdate == record.challenge_pcrdate
-					).order_by(Clan_challenge.cid):
-						if candidate.is_continue:
-							if pending: pending.pop(0)
-						elif candidate.boss_health_remain == 0:
-							pending.append(candidate.cid)
+					)
+					pending = {tail.cid for tail in pending_compensations(self, records, current_group.game_server)}
 					if cid not in pending:
 						return jsonify(code=30, message='补偿刀已使用，请刷新')
 					if 'expected_return_seconds' in payload:
