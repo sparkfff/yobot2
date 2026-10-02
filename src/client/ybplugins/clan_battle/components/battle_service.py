@@ -223,6 +223,8 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
         is_continue = counts.choose_compensation(is_continue)
     if is_continue and counts.compensation <= 0:
         raise GroupError('您没有补偿刀')
+    if is_continue and return_seconds is not None:
+        raise InputError('补偿刀收尾不会获得新的返秒，请去掉返秒后报尾刀')
     selected_tail = None
     if is_continue:
         source_id = (previous_application.compensation_tail_id
@@ -232,7 +234,7 @@ def challenge(self, group_id, qqid, defeat, damage=0, behalfed=None,
 
     # All rejection paths above leave the database and application state intact.
     challenge_damage = target_health[boss_num] if defeat else damage
-    if defeat:
+    if defeat and not is_continue:
         return_seconds = effective_return_seconds(self, boss_cycle, group.game_server, return_seconds)
     target_health[boss_num] -= challenge_damage
     health_remaining = target_health[boss_num]

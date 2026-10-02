@@ -56,6 +56,8 @@ class CompensationSelectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('已消耗补偿：81s', reply)
         report = Clan_challenge.select().order_by(Clan_challenge.cid.desc()).get()
         self.assertEqual(report.consumed_tail_id, selected.cid)
+        self.assertIsNone(report.return_seconds)
+        self.assertNotIn('返秒：', reply)
         self.assertEqual(self.pending(), [first.cid])
         self.battle.undo(100, 10)
         self.assertEqual(ChallengeState.from_json(self.group().challenging_member_list).get(1, 10).compensation_tail_id, selected.cid)
@@ -128,3 +130,21 @@ class CompensationSelectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(record.is_continue)
         self.assertEqual(record.consumed_tail_id, selected.cid)
         self.assertEqual(self.pending(), [first.cid])
+
+    async def test_compensation_tail_rejects_new_return_seconds_without_mutation(self):
+        selected = self.tail(80)
+        self.command('进1 80s', 12)
+        original = self.group().now_cycle_boss_health
+        for text in ('尾刀 1 b 41s', '尾刀 41s'):
+            self.assertIn('补偿刀收尾不会获得新的返秒', self.command(text, 5))
+            self.assertEqual(Clan_challenge.select().count(), 1)
+            self.assertEqual(self.group().now_cycle_boss_health, original)
+            self.assertEqual(self.pending(), [selected.cid])
+            state = ChallengeState.from_json(self.group().challenging_member_list)
+            self.assertEqual(state.get(1, 10).compensation_tail_id, selected.cid)
+        reply = self.command('尾刀', 5)
+        self.assertIn('已消耗补偿：80s', reply)
+        self.assertNotIn('返秒：', reply)
+        record = Clan_challenge.select().order_by(Clan_challenge.cid.desc()).get()
+        self.assertIsNone(record.return_seconds)
+        self.assertEqual(self.pending(), [])
