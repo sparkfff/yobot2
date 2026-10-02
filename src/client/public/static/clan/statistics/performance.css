@@ -145,3 +145,5 @@
 .yobot-ui .ui-performance .performance-ranking.el-table .el-table__body tr:hover > td {
   box-shadow: inset 0 0 0 999px rgba(91, 113, 190, .045);
 }
+
+.yobot-ui .ui-performance .performance-ranking.el-table td[class] { background-size: 5px 5px, 100% 100%; }
