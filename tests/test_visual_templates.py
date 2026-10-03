@@ -39,7 +39,7 @@ class VisualTemplateTests(unittest.IsolatedAsyncioTestCase):
         for template in ('admin/setting.html', 'admin/users.html', 'clan/panel.html',
                          'clan/setting.html', 'clan/progress.html', 'clan/subscribers.html',
                          'clan/statistics.html', 'clan/statistics/statistics2.html',
-                         'clan/statistics/performance.html', 'login.html'):
+                         'clan/statistics/performance.html', 'login.html', '404.html'):
             with self.subTest(template=template):
                 async with self.app.test_request_context('/bot/'):
                     session['csrf_token'] = 'test'
