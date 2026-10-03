@@ -6,6 +6,7 @@ from typing import Dict, Union
 from urllib.parse import urljoin
 
 from aiocqhttp.api import Api
+from aiocqhttp.exceptions import Error as CQHttpError
 from apscheduler.triggers.cron import CronTrigger
 from quart import (Quart, Response, jsonify, make_response, redirect, request,
                    send_from_directory, session, url_for)
@@ -63,6 +64,23 @@ class Login:
         if cmd == '重置密码':
             return 3
         return 0
+
+    async def execute_async(self, match_num: int, ctx: dict) -> dict:
+        if ctx['message_type'] != 'group' or match_num != 1:
+            return self.execute(match_num, ctx)
+
+        # Reuse the private reply without returning the login link to the group.
+        result = self.execute(match_num, dict(ctx, message_type='private'))
+        message = result['reply']
+        try:
+            await self.api.send_private_msg(user_id=ctx['user_id'], message=message)
+        except CQHttpError:
+            try:
+                await self.api.send_private_msg(
+                    user_id=ctx['user_id'], group_id=ctx['group_id'], message=message)
+            except CQHttpError:
+                return {'reply': '请私聊使用', 'block': True}
+        return {'reply': '', 'block': True}
 
     def execute(self, match_num: int, ctx: dict) -> dict:
         if ctx['message_type'] != 'private':
