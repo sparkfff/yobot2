@@ -46,7 +46,7 @@ docker pull alpine
 docker pull yobot/yobot
 
 echo "downloading latest gocqhttp"
-docker run --rm -v ${PWD}:/work -w /work python:3.7-slim-buster python3 -c "
+docker run --rm -v ${PWD}:/work -w /work python:3.10-slim-bookworm python3 -c "
 import json
 import urllib.request
 url = 'https://api.github.com/repos/Mrs4s/go-cqhttp/releases'
@@ -80,7 +80,7 @@ docker run --rm \
            gocqhttp >/dev/null 2>&1
 
 echo "writing configure files"
-docker run --rm -v ${PWD}:/work -w /work -e qqid -e qqpassword python:3.7-slim-buster python3 -c "
+docker run --rm -v ${PWD}:/work -w /work -e qqid -e qqpassword python:3.10-slim-bookworm python3 -c "
 import json, os, random, string
 access_token = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=16))
 with open('yobot_data/yobot_config.json', 'w') as f:

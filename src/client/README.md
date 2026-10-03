@@ -4,7 +4,7 @@
 
 ## 运行
 
-当前自动化测试使用 Python 3.9。使用独立虚拟环境安装 [requirements.txt](requirements.txt) 中的依赖，然后在 `src/client` 目录启动程序：
+项目基准环境为 Python 3.10，CI 在 Linux 与 Windows 上使用该版本，Docker 基础镜像为 `python:3.10-slim-bookworm`。使用 Python 3.10 的独立虚拟环境安装 [requirements.txt](requirements.txt) 中的依赖，然后在 `src/client` 目录启动程序：
 
 ```sh
 python -m pip install -r requirements.txt

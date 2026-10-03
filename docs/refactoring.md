@@ -38,13 +38,14 @@
 ## 验证
 
 ```sh
-python -m venv .venv
+python3.10 -m venv .venv
+# Windows: py -3.10 -m venv .venv
 # Linux/macOS: .venv/bin/python；Windows: .venv/Scripts/python.exe
 .venv/bin/python -m pip install -r src/client/requirements.txt
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-测试使用临时目录、隔离 SQLite 数据库和真实 Quart 路由，不需要 QQ 登录，也不访问生产数据。CI 在 Linux 与 Windows 上运行，使用本次本地验证的 Python 3.9；这不是对运行时长期支持的承诺。
+测试使用临时目录、隔离 SQLite 数据库和真实 Quart 路由，不需要 QQ 登录，也不访问生产数据。项目基准环境和 Linux、Windows CI 均为 Python 3.10，Docker 基础镜像为 `python:3.10-slim-bookworm`。本地 Windows Python 3.10.22 已通过依赖安装、`pip check`、程序入口导入与完整回归测试；这不是对运行时长期支持的承诺。
 
 ## 部署与后续边界
 
