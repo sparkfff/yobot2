@@ -1,0 +1,45 @@
+/* Error pages share the site theme without loading the legacy random theme. */
+.yobot-ui .ui-error #app {
+  max-width: 680px; margin: clamp(24px, 8vh, 80px) auto 0;
+  background: linear-gradient(135deg, #fff, #fbfcff);
+  border: 1px solid var(--ui-border); border-radius: 22px;
+  box-shadow: var(--ui-shadow); overflow: hidden;
+}
+.ui-error .error-heading {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 22px 28px; color: #d5e1fb;
+  background: radial-gradient(ellipse at 100% 0%, rgba(70, 131, 196, .55), transparent 65%), linear-gradient(110deg, #172342, #2c3866);
+}
+.ui-error .error-heading span:first-child { color: #fff; font-weight: 750; letter-spacing: 2px; }
+.ui-error .error-content { padding: 44px 28px 48px; }
+.ui-error .error-code {
+  font-size: clamp(80px, 18vw, 120px); font-weight: 800; line-height: 1.1; letter-spacing: -5px;
+  color: #5146bd; background: linear-gradient(115deg, #6558d9, #386be3, #218b9c);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.yobot-ui .ui-error h1 { margin: 24px 0 12px; font-size: 26px; }
+.yobot-ui .ui-error p { margin: 0; color: var(--ui-muted); }
+.ui-error .error-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 16px; margin-top: 32px; }
+.yobot-ui .ui-error .error-action {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 11px 24px; border: 1px solid #d8e1ee; border-radius: 10px;
+  color: #425570; background: #fff; font: inherit; font-weight: 550; cursor: pointer;
+  transition: box-shadow .25s ease, border-color .2s ease, transform .2s var(--ui-ease);
+}
+.yobot-ui .ui-error .error-action-primary {
+  color: #fff; background: linear-gradient(115deg, #4f46e5, #386be3); border-color: #4f46e5;
+  box-shadow: 0 5px 14px rgba(79, 70, 229, .2);
+}
+@media (hover: hover) and (pointer: fine) {
+  .yobot-ui .ui-error .error-action:hover { transform: translateY(-2px); border-color: #7165ea; box-shadow: 0 8px 20px rgba(79, 70, 229, .16); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ui-error .error-code, .ui-error .error-content h1 { animation: ui-surface-in .55s ease backwards; }
+}
+@media (max-width: 600px) {
+  .ui-error .error-heading { padding: 18px 20px; }
+  .ui-error .error-content { padding: 32px 20px; }
+  .yobot-ui .ui-error h1 { font-size: 23px; }
+  .ui-error .error-actions { gap: 12px; }
+  .yobot-ui .ui-error .error-action { flex: 1 1 140px; padding: 11px 16px; }
+}
