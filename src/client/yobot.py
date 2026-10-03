@@ -18,12 +18,14 @@ from quart import Quart, request
 
 if __package__:
     from .ybplugins.file_access import register_file_routes
+    from .ybplugins.group_switch import switch_group_service
     from .ybplugins import (clan_battle, homepage,
                             login, marionette, settings,
                             switcher, templating, web_util, ybdata,
                             yobot_msg, custom, group_leave)
 else:
     from ybplugins.file_access import register_file_routes
+    from ybplugins.group_switch import switch_group_service
     from ybplugins import (clan_battle, homepage,
                            login, marionette, settings,
                            switcher, templating, web_util, ybdata,
@@ -193,8 +195,6 @@ class Yobot:
 
         # filter
         self.black_list = set(self.glo_setting["black-list"])
-        self.black_list_group = set(self.glo_setting["black-list-group"])
-        self.white_list_group = set(self.glo_setting["white-list-group"])
 
         # update runtime variables
         self.glo_setting.update({
@@ -241,6 +241,13 @@ class Yobot:
         '''
         receive a message and return a reply
         '''
+        # Service controls remain reachable while this group is disabled.
+        if msg["sender"]["user_id"] in self.black_list:
+            return None
+        switch_reply = switch_group_service(self.glo_setting, msg)
+        if switch_reply is not None:
+            return switch_reply
+
         # prefix
         if self.glo_setting.get("preffix_on", False):
             preffix = self.glo_setting.get("preffix_string", "")
@@ -249,16 +256,17 @@ class Yobot:
             else:
                 msg["raw_message"] = (
                     msg["raw_message"][len(preffix):])
+            switch_reply = switch_group_service(self.glo_setting, msg)
+            if switch_reply is not None:
+                return switch_reply
 
         # black-list
-        if msg["sender"]["user_id"] in self.black_list:
-            return None
         if msg["message_type"] == "group":
             if self.glo_setting["white_list_mode"]:
-                if msg["group_id"] not in self.white_list_group:
+                if msg["group_id"] not in self.glo_setting["white-list-group"]:
                     return None
             else:
-                if msg["group_id"] in self.black_list_group:
+                if msg["group_id"] in self.glo_setting["black-list-group"]:
                     return None
 
         if msg["sender"].get("card", "") == "":

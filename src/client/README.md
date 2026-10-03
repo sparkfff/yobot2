@@ -26,6 +26,8 @@ Linux 首次执行会生成 `yobotg.sh` 并退出；按提示运行 `sh yobotg.s
 
 ## 配置
 
+群主、群管理员或机器人主人可在群内发送 `关闭 yobot2` 暂停本群消息服务，发送 `开启 yobot2` 恢复。指令无需前缀，立即生效，无需重启；状态保存到群黑白名单，重启后仍保留。只影响当前群的消息响应，不影响其他群和网页服务。
+
 配置文件采用 JSON 格式，修改后重启生效。默认值见 [default_config.json](packedfiles/default_config.json)。
 
 | 配置项 | 说明 |
