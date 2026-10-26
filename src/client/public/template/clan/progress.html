@@ -107,7 +107,7 @@
 			</el-menu>
 		</div>
 		<h1 style="text-align:center">出刀记录<el-popover placement="top" effect="light" trigger="hover">
-				1.红名表示今日已使用过SL<br>2.有色背景表示已完成今日出刀<br>3.点击昵称或详细可以查看详细出刀情况<br>4.点击成员头像可以查看该成员的所有历史出刀记录<i
+				1.橙色侧边及“已用SL”标记表示今日已使用过SL<br>2.绿色背景表示已完成今日出刀<br>3.点击昵称或详细可以查看详细出刀情况<br>4.点击成员头像可以查看该成员的所有历史出刀记录<i
 					class="el-icon-question" slot="reference"></i></el-popover>
 		</h1>
 		<el-date-picker v-model="reportDate" type="date" placeholder="选择日期" @change="report_day"></el-date-picker>
@@ -177,24 +177,24 @@
 			</el-dialog>
 
 			<!-- 这里有个是否是手机的判断 -->
-			<el-table width="100%" v-if="isMobile" :data="visibleProgressData" :empty-text="onlyUnfinished ? '没有未完成的成员' : '暂无数据'" :span-method="arraySpanMethod"
+			<el-table class="progress-mobile" width="100%" v-if="isMobile" :data="visibleProgressData" :empty-text="onlyUnfinished ? '没有未完成的成员' : '暂无数据'" :span-method="arraySpanMethod"
 				ref="multipleTable" @selection-change="handleSelectionChange" stripe :row-class-name="getRowClass"
 				@cell-click="clickCell">
-				<el-table-column type="selection" width="70"></el-table-column>
-				<el-table-column label="成员" width="80">
+				<el-table-column type="selection" width="40"></el-table-column>
+				<el-table-column label="成员" width="42">
 					<template slot-scope="scope">
 						<el-avatar shape="square" :src="'https://q1.qlogo.cn/g?b=qq&nk=' + scope.row.qqid + '&s=140'"
 							@click.native="location='../'+scope.row.qqid+'/'"></el-avatar>
 					</template>
 				</el-table-column>
-				<el-table-column label="昵称" width="200">
+				<el-table-column label="昵称" min-width="85">
 					<template slot-scope="scope">
-						<span :style="{color: scope.row.sl == today ? '#ff0000' : 'var(--font-color)'}">[[
+						<span class="progress-nickname">[[
 							scope.row.nickname ]]</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="finished" label="今日" width="80" sortable></el-table-column>
-				<el-table-column label="显示详细" type="expand" align="right">
+				<el-table-column prop="finished" label="今日" width="62" sortable></el-table-column>
+				<el-table-column label="详情" type="expand" width="36" align="center">
 					<template slot-scope="props">
 						<div>
 							第一刀:
@@ -280,22 +280,19 @@
 						</div>
 					</template>
 				</el-table-column>
+					<el-table-column prop="sl" label="SL" width="58">
+						<template slot-scope="scope">
+							<span v-if="today === -1" class="progress-sl-unknown" title="历史日期不提供SL状态">—</span>
+							<span v-else-if="scope.row.sl == today" class="progress-sl-used">已用SL</span>
+							<span v-else class="progress-sl-ready">可用</span>
+						</template>
+					</el-table-column>
 			</el-table>
 			
 			<div v-else class="pc-box">
 				<el-table width="100%" :data="visibleProgressData" :empty-text="onlyUnfinished ? '没有未完成的成员' : '暂无数据'" :span-method="arraySpanMethod" ref="multipleTable"
 					@selection-change="handleSelectionChange" stripe :row-class-name="getRowClass" size="medium">
-					<el-table-column prop="sl" label="SL" width="75" sortable>
-						<template slot-scope="scope">
-							<template v-if="today==-1">
-								<i class="el-icon-folder-remove"></i>
-							</template>
-							<template v-else>
-								<i v-if="scope.row.sl==today" class="el-icon-star-off" style="color: #F56C6C"></i>
-								<i v-else class="el-icon-star-on" style="color: #67C23A"></i>
-							</template>
-						</template>
-					</el-table-column>
+					<el-table-column type="selection" width="60"></el-table-column>
 					<el-table-column label="成员" width="60">
 						<template slot-scope="scope">
 							<el-avatar shape="square"
@@ -366,7 +363,13 @@
 							</template>
 						</el-table-column>
 					</el-table-column>
-					<el-table-column type="selection" width="60"></el-table-column>
+					<el-table-column prop="sl" label="SL" width="75" sortable>
+						<template slot-scope="scope">
+							<span v-if="today === -1" class="progress-sl-unknown" title="历史日期不提供SL状态">—</span>
+							<span v-else-if="scope.row.sl == today" class="progress-sl-used">已用SL</span>
+							<span v-else class="progress-sl-ready">可用</span>
+						</template>
+					</el-table-column>
 				</el-table>
 				<div style="width: 100%;">
 				<el-button class="progress-btn" @click="viewInExcel" size="mini"

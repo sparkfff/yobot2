@@ -23,3 +23,7 @@ jobs:
       - run: python -m pip install -r src/client/requirements.txt
       - run: python -m pip check
       - run: python -m unittest discover -s tests -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tests/test_progress_ui.cjs
