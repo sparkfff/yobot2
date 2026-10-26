@@ -107,6 +107,10 @@
       <el-form-item label="允许进行批量私聊">
         <el-checkbox v-model="setting.allow_bulk_private"></el-checkbox>
       </el-form-item>
+      <el-form-item label="严谨记录返秒">
+        <el-switch v-model="setting.strict_return_seconds"></el-switch>
+        <div>默认关闭。开启后，C阶段未报返秒显示?s，与D阶段相同；B阶段仍默认90s。已记录的返秒不变。</div>
+      </el-form-item>
     </el-form>
     <div class="ui-section">
       <el-collapse v-model="activeNames" @change="bossSetting = !bossSetting">

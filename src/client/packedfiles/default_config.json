@@ -13,6 +13,7 @@
     "white-list-group": [],
     "allow_bulk_private": false,
     "clan_battle_mode": "web",
+    "strict_return_seconds": false,
     "notify_groups": [],
     "notify_privates": [],
     "preffix_on": false,

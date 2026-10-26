@@ -6,7 +6,9 @@ def effective_return_seconds(battle, boss_cycle, game_server, seconds):
     if seconds is not None:
         return seconds
     # Stage indices start at zero: B, C, D, ...
-    return 90 if battle._level_by_cycle(boss_cycle, game_server) in (0, 1) else None
+    stage = battle._level_by_cycle(boss_cycle, game_server)
+    strict = battle.setting.get('strict_return_seconds', False)
+    return 90 if stage == 0 or (stage == 1 and not strict) else None
 
 
 def pending_compensations(battle, records, game_server):

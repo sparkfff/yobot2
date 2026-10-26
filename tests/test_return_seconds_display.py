@@ -80,6 +80,22 @@ class ReturnSecondsDisplayTests(unittest.IsolatedAsyncioTestCase):
                 self.battle.challenger_info(100)
             self.assertEqual(block.call_args_list[1].kwargs['data_text'], label)
 
+    async def test_strict_c_stage_is_unknown_in_report_image_and_selection(self):
+        from ybplugins.clan_battle.components.tail_return_seconds import select_compensation
+        from ybplugins.clan_battle.exception import GroupError
+        self.battle.level_by_cycle = {'cn': [[1, 3], [4, 6], [7, 999]]}
+        unknown = self.record(cycle=4)
+        self.battle.setting['strict_return_seconds'] = True
+        reports = self.battle.get_report(100, None, None, harness.TODAY, nocache=True)
+        self.assertIsNone(reports[0]['return_seconds'])
+        with patch.object(realize, 'get_process_image', wraps=realize.get_process_image) as render:
+            self.battle.challenger_info(100)
+        self.assertEqual(render.call_args.args[1]['补偿']['10'], '10 ?s')
+        with self.assertRaises(GroupError):
+            select_compensation(self.battle, [unknown], 'cn', seconds=90)
+        self.battle.setting['strict_return_seconds'] = False
+        self.assertEqual(select_compensation(self.battle, [unknown], 'cn', seconds=90).cid, unknown.cid)
+
 
 class ReturnSecondsFrontendTests(unittest.TestCase):
     def test_tail_editor_saves_unknown_seconds_and_preserves_failed_edits(self):

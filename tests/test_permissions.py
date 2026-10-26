@@ -118,12 +118,27 @@ class PermissionRoutesTests(unittest.IsolatedAsyncioTestCase):
             response = await self.client.put('/admin/setting/api/', json=body)
             self.assertIn((await response.get_json())['code'], (15, 30))
         self.assertTrue(self.setting['web_mode_hint'])
+
         async with self.client.session_transaction() as sess:
             del sess['csrf_token']
         response = await self.client.put('/admin/setting/api/', json={
             'setting': {'web_mode_hint': False}})
         self.assertEqual((await response.get_json())['code'], 15)
         self.assertTrue(self.setting['web_mode_hint'])
+
+    async def test_strict_return_seconds_is_boolean_and_persisted(self):
+        await self.login(1)
+        for value in ('false', 0, None):
+            response = await self.client.put('/admin/setting/api/', json={
+                'csrf_token': 'test-csrf', 'setting': {'strict_return_seconds': value}})
+            self.assertEqual((await response.get_json())['code'], 30)
+            self.assertNotIn('strict_return_seconds', self.setting)
+        for value in (True, False):
+            response = await self.client.put('/admin/setting/api/', json={
+                'csrf_token': 'test-csrf', 'setting': {'strict_return_seconds': value}})
+            self.assertEqual((await response.get_json())['code'], 0)
+            saved = json.loads((Path(self.tmp.name) / 'yobot_config.json').read_text())
+            self.assertIs(saved['strict_return_seconds'], value)
 
     async def test_admin_of_other_clan_cannot_modify_current_clan(self):
         await self.login(10)
