@@ -13,6 +13,9 @@
 	<link rel="stylesheet" href="/yobot-depencency/yocool@final/princessadventure/style.css">
 
 	<style>
+		.progress-help { max-width: calc(100vw - 32px); line-height: 1.7; white-space: normal; text-align: left; }
+		.progress-help ol { margin: 0; padding-left: 20px; }
+		.progress-help li + li { margin-top: 6px; }
 		.tail-record-dialog.el-dialog__wrapper .el-dialog {
 			width: calc(100vw - 32px);
 			max-width: 960px;
@@ -106,9 +109,17 @@
 				<el-menu-item index="1">面板</el-menu-item>
 			</el-menu>
 		</div>
-		<h1 style="text-align:center">出刀记录<el-popover placement="top" effect="light" trigger="hover">
-				1.橙色侧边及“已用SL”标记表示今日已使用过SL<br>2.绿色背景表示已完成今日出刀<br>3.点击昵称或详细可以查看详细出刀情况<br>4.点击成员头像可以查看该成员的所有历史出刀记录<i
-					class="el-icon-question" slot="reference"></i></el-popover>
+		<h1 style="text-align:center">出刀记录<el-popover placement="bottom" trigger="hover" width="300" popper-class="progress-help">
+				<ol>
+					<li>最右侧 SL 栏中，“已用SL”和橙色侧边表示今日已使用 SL；“可用”表示尚未使用。</li>
+					<li>绿色背景表示该成员在所选日期已完成 3 刀；已用 SL 的橙色标记仍会保留。</li>
+					<li v-if="isMobile">点击昵称或“详情”列的箭头，展开或收起当天的出刀明细。</li>
+					<li v-else>各刀记录直接显示在表格中；将鼠标移到信息图标上，可查看报刀时间、伤害等明细。</li>
+					<li>点击成员头像，查看该成员的出刀记录。</li>
+					<li>SL 状态仅在默认今日视图中显示；切换日期后显示“—”。</li>
+				</ol>
+				<i class="el-icon-question" slot="reference"></i>
+			</el-popover>
 		</h1>
 		<el-date-picker v-model="reportDate" type="date" placeholder="选择日期" @change="report_day"></el-date-picker>
 		<el-button class="progress-btn" type="warning" @click="selectUnfinished">选中未完成</el-button>
