@@ -238,13 +238,17 @@ def execute(self, match_num, ctx):
 	elif match_num == 8:  # 业绩
 		match = re.match(r'^业绩(表) *$', cmd)
 		if not match: return
-		try:
-			back_msg = self.score_table(group_id)
-		except ClanBattleError as e:
-			_logger.info('群聊 失败 {} {} {}'.format(user_id, group_id, cmd))
-			return str(e)
-		_logger.info('群聊 成功 {} {} {}'.format(user_id, group_id, cmd))
-		return back_msg
+		async def send_performance():
+			try:
+				try:
+					message = await self.score_table(group_id)
+				except ClanBattleError as exc:
+					message = str(exc)
+				await self.api.send_group_msg(group_id=group_id, message=message)
+			except Exception:
+				_logger.exception('群聊业绩表发送失败 %s', group_id)
+		asyncio.ensure_future(send_performance())
+		return None
 
 	elif match_num == 9:  # 出刀记录
 		match = re.match(r'^出刀(记录|情况|状况|详情) *$', cmd)
