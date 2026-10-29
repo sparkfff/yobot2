@@ -109,7 +109,7 @@
 					</el-table-column>
 				</el-table-column>
 			</el-table>
-			<el-button @click="viewInExcel" size="mini" style="margin-top: 10px;">在Excel中查看</el-button>
+			<el-button @click="viewInExcel" :loading="exporting" aria-label="导出 Excel" size="mini" style="margin-top: 10px;">导出 Excel</el-button>
 		</template>
 		<template v-else>
 			<p>没有记录</p>
@@ -119,6 +119,7 @@
 {% include 'partials/ui_footer.html' %}
 </body>
 <script>var csrf_token = "{{ session['csrf_token'] }}";</script>
+<script src="{{ url_for('yobot_static', filename='clan/excel-export.js') }}" data-xlsx-src="{{ url_for('yobot_static', filename='vendor/sheetjs-0.20.3/xlsx.mini.min.js') }}"></script>
 <script src="{{ url_for('yobot_static', filename='clan/user.js') }}"></script>
 
 </html>
