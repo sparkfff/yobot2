@@ -4,6 +4,7 @@ if (!Object.defineProperty) {
 var vm = new Vue({
     el: '#app',
     data: {
+        exporting: false,
         progressData: [],
         onlyUnfinished: false,
         members: [],
@@ -289,14 +290,14 @@ var vm = new Vue({
             return qqid;
         },
         viewInExcel: function () {
-            var icons = document.getElementsByTagName('span');
-            while (icons[0]) {
-                icons[0].remove();
-            }
-            var uri = 'data:application/vnd.ms-excel;base64,';
-            var ctx = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>' + document.getElementsByTagName('thead')[0].innerHTML + document.getElementsByTagName('tbody')[0].innerHTML + '</table></body></html>';
-            window.location.href = uri + window.btoa(unescape(encodeURIComponent(ctx)));
-            document.documentElement.innerHTML = "请在Excel中查看（如果无法打开，请安装最新版本Excel）\n或者将整个表格复制，粘贴到Excel中使用";
+            if (this.exporting) return;
+            this.exporting = true;
+            var thisvue = this;
+            return ClanExcel.progress(this.visibleProgressData, {date: this.reportDate, today: this.today, findName: this.find_name}).catch(function () {
+                thisvue.$alert('导出失败，请稍后重试。', '导出 Excel');
+            }).then(function () {
+                thisvue.exporting = false;
+            });
         },
         handleTitleSelect(key, keyPath) {
             switch (key) {

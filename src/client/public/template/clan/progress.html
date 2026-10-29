@@ -382,12 +382,13 @@
 						</template>
 					</el-table-column>
 				</el-table>
-				<div style="width: 100%;">
-				<el-button class="progress-btn" @click="viewInExcel" size="mini"
-					style="width: 115px;margin: 16px 0;">
-					<i class="el-icon-document">在Excel中查看</i></el-button>
-				</div>
+
 			</div>
+				<div style="width: 100%;">
+				<el-button class="progress-btn" @click="viewInExcel" :loading="exporting" aria-label="导出 Excel" size="mini"
+					style="width: 115px;margin: 16px 0;">
+					<i class="el-icon-document" aria-hidden="true"></i>导出 Excel</el-button>
+				</div>
 		</template>
 		<br><div style="width: 100%;">
 		<el-button class="progress-btn" @click="dropMemberVisible = true" style="margin-bottom: 20px;"><i class="el-icon-delete">删除</i>
@@ -411,6 +412,7 @@
 <script>
 	var csrf_token = "{{ session['csrf_token'] }}";
 </script>
+<script src="{{ url_for('yobot_static', filename='clan/excel-export.js') }}" data-xlsx-src="{{ url_for('yobot_static', filename='vendor/sheetjs-0.20.3/xlsx.mini.min.js') }}"></script>
 <script src="{{ url_for('yobot_static', filename='clan/progress.js') }}"></script>
 
 </html>
