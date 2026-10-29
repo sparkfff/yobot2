@@ -144,6 +144,9 @@ class Setting:
                     )
                 if set(new_setting) - self.configurable_keys:
                     return jsonify(code=30, message='Unsupported setting fields')
+                if ('strict_return_seconds' in new_setting and
+                        not isinstance(new_setting['strict_return_seconds'], bool)):
+                    return jsonify(code=30, message='严谨记录返秒必须是开关值')
                 self.setting.update(new_setting)
                 save_setting = self.setting.copy()
                 del save_setting['dirname']

@@ -83,3 +83,20 @@ class TailSecondsTests(unittest.IsolatedAsyncioTestCase):
                 self.command('尾刀 1')
                 self.assertEqual(Clan_challenge.select().order_by(Clan_challenge.cid.desc()).get().return_seconds, seconds)
                 self.battle.undo(100, 10)
+
+    async def test_strict_mode_only_changes_omitted_c_stage_seconds(self):
+        from ybplugins.ybdata import Clan_group
+        self.battle.level_by_cycle = {'cn': [[1, 3], [4, 6], [7, 999]]}
+        self.battle.bossinfo['cn'].append([300] * 5)
+        for strict, cycle, explicit, expected in [
+                (False, 4, None, 90), (True, 1, None, 90),
+                (True, 4, None, None), (True, 7, None, None),
+                (True, 4, 80, 80), (False, 4, 80, 80)]:
+            with self.subTest(strict=strict, cycle=cycle, explicit=explicit):
+                self.battle.setting['strict_return_seconds'] = strict
+                Clan_group.update(boss_cycle=cycle).where(Clan_group.group_id == 100).execute()
+                reply = self.command('尾刀 1' + (f' {explicit}s' if explicit else ''))
+                self.assertEqual(Clan_challenge.get().return_seconds, expected)
+                if expected is None:
+                    self.assertNotIn('返秒：90s', reply)
+                self.battle.undo(100, 10)
