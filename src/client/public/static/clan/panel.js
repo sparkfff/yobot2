@@ -4,6 +4,8 @@ if (!Object.defineProperty) {
 var vm = new Vue({
     el: '#app',
     data: {
+        pageReady: false,
+        pageError: '',
         activeIndex: "1",
         groupData: {},
         bossData: { 1:{is_next:false,cycle:0,health:0,full_health:0,icon_id:0,challenger:{}},
@@ -54,38 +56,7 @@ var vm = new Vue({
         challengersList: {1:false,2:false,3:false,4:false,5:false},     //各个正在挑战的玩家列表显示
     },
     mounted() {
-        var thisvue = this;
-        axios.post("./api/", {
-            action: 'get_data',
-            csrf_token: csrf_token,
-        }).then(function (res) {
-            if (res.data.code == 0) {
-                thisvue.groupData = res.data.groupData;
-                thisvue.bossData = res.data.bossData;
-                thisvue.base_cycle = res.data.groupData.cycle;
-                thisvue.is_admin = res.data.selfData.is_admin;
-                thisvue.self_id = res.data.selfData.user_id;
-                thisvue.boss_num = 1;
-                document.title = res.data.groupData.group_name + ' - 公会战';
-            } else {
-                thisvue.$alert(res.data.message, '加载数据错误');
-            }
-        }).catch(function (error) {
-            thisvue.$alert(error, '加载数据错误');
-        });
-        axios.post("./api/", {
-            action: 'get_member_list',
-            csrf_token: csrf_token,
-        }).then(function (res) {
-            if (res.data.code == 0) {
-                thisvue.members = res.data.members;
-            } else {
-                thisvue.$alert(res.data.message, '获取成员失败');
-            }
-        }).catch(function (error) {
-            thisvue.$alert(error, '获取成员失败');
-        });
-        this.status_long_polling();
+        this.loadPanel();
     },
     beforeMount () {
         this._layoutQuery = window.matchMedia('(max-width: 767px)');
@@ -123,6 +94,34 @@ var vm = new Vue({
         },
     },
     methods: {
+        loadPanel: function () {
+            var thisvue = this;
+            this.pageReady = false;
+            this.pageError = '';
+            return Promise.all([
+                axios.post('./api/', {action: 'get_data', csrf_token: csrf_token}, {timeout: 15000}),
+                axios.post('./api/', {action: 'get_member_list', csrf_token: csrf_token}, {timeout: 15000}),
+            ]).then(function (responses) {
+                var res = responses[0], members = responses[1];
+                if (res.data.code !== 0 || members.data.code !== 0) {
+                    thisvue.pageError = (res.data.code !== 0 ? res.data.message : members.data.message) || '加载失败，请稍后重试。';
+                    return;
+                }
+                thisvue.groupData = res.data.groupData;
+                thisvue.bossData = res.data.bossData;
+                thisvue.base_cycle = res.data.groupData.cycle;
+                thisvue.is_admin = res.data.selfData.is_admin;
+                thisvue.self_id = res.data.selfData.user_id;
+                thisvue.members = members.data.members;
+                thisvue.boss_num = 1;
+                document.title = res.data.groupData.group_name + ' - 公会战';
+                thisvue.pageReady = true;
+                thisvue.status_long_polling();
+            }).catch(function () {
+                thisvue.pageError = '加载失败，请检查网络后重试。';
+            });
+        },
+
         find_name: function (qqid) {
             for (m of this.members) {
                 if (m.qqid == qqid) {
