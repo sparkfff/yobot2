@@ -122,7 +122,7 @@ class PerformanceTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(performance.PerformanceError, '1 位小数'):
             self.save(data)
 
-    def test_group_command_renders_new_ranking_png_and_archive_month(self):
+    async def test_group_command_renders_new_ranking_png_and_archive_month(self):
         import base64
         from datetime import datetime, timezone
         from io import BytesIO
@@ -145,10 +145,14 @@ class PerformanceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(headers[2:], ['总刀数', 'B阶段', 'C阶段', 'D阶段',
                                       'B得分', 'C得分', 'D得分', '总业绩分'])
         self.assertEqual(rows[0][2:], ['2', '1', '1', '0', '0.3', '1.5', '0', '1.8'])
-        message = score_table(self.battle, 100)
+        from unittest.mock import AsyncMock, patch
+        with patch('ybplugins.clan_battle.components.score.load_performance_avatars', new=AsyncMock(return_value={10: Image.new('RGB', (40, 40), '#ff0000')})) as load:
+            message = await score_table(self.battle, 100)
+        load.assert_awaited_once()
         self.assertTrue(message.startswith('[CQ:image,file=base64://'))
         image = Image.open(BytesIO(base64.b64decode(message.split('base64://', 1)[1][:-1])))
         self.assertEqual(image.format, 'PNG')
+        self.assertEqual(image.getpixel((148, 229)), (255, 0, 0))
         self.assertGreater(image.width, 1000)
         self.assertGreater(image.height, 150)
 

@@ -68,6 +68,7 @@
                         @keyup.enter.native="onSubmit"></el-input>
                 </el-form-item>
                 <el-form-item>
+                    <el-checkbox v-model="form.remember">记住我（7天内保持登录）</el-checkbox>
                     <el-button type="primary" @click="onSubmit" style="width: 100%;margin-top: 25px;">登录</el-button>
                 </el-form-item>
             </el-form>
@@ -80,7 +81,8 @@
             data: {
                 form: {
                     qq: "",
-                    pwd: ""
+                    pwd: "",
+                    remember: false
                 },
                 rules: {
                     qq: [
@@ -91,10 +93,10 @@
                     ],
                 }
             },
-            methods() {
-                if (localStorage.login_qqid) {
-                    this.form.qq = String(localStorage.login_qqid);
-                }
+            mounted() {
+                try {
+                    this.form.qq = localStorage.getItem('login_qqid') || '';
+                } catch (e) {}
             },
             methods: {
                 post: function (url, params) {
@@ -117,13 +119,20 @@
                     temp_form.submit();
                 },
                 onSubmit: function () {
-                    localStorage.login_qqid = this.form.qq;
                     this.$refs['form'].validate((valid) => {
                         if (valid) {
+                            try {
+                                if (this.form.remember) {
+                                    localStorage.setItem('login_qqid', this.form.qq);
+                                } else {
+                                    localStorage.removeItem('login_qqid');
+                                }
+                            } catch (e) {}
                             const url = "{{ url_for('yobot_login') }}";
                             this.post(url, {
                                 qqid: this.form.qq,
-                                pwd: getHashWithSalt(this.form.pwd + this.form.qq)
+                                pwd: getHashWithSalt(this.form.pwd + this.form.qq),
+                                remember: this.form.remember ? '1' : '0'
                             });
                         } else {
                             console.log('请检查输入！');

@@ -58,24 +58,27 @@ var vm = new Vue({
             thisvue.$alert(error, '获取数据失败');
         });
     },
-    beforeMount () {
-        var userAgentInfo = navigator.userAgent;
-        var Agents = ['Android', 'iPhone', 'SymbianOS', 'Windows Phone', 'iPad', 'iPod'];
-        for (var v = 0; v < Agents.length; v++) {
-            if (userAgentInfo.indexOf(Agents[v]) > 0) {
-                this.isMobile = true
-                break
-            }
-        }
+    beforeMount() {
+        this.updateViewport();
+        window.addEventListener('resize', this.updateViewport);
+    },
+    beforeDestroy() {
+        window.removeEventListener('resize', this.updateViewport);
     },
     methods: {
+        updateViewport: function () {
+            this.isMobile = window.innerWidth <= 1080;
+        },
         clickCell: function (row, column) {
             if (column.label === '昵称') {
                 this.$refs.multipleTable.toggleRowExpansion(row)
             }
         },
         getRowClass: function (e) {
-            return e.row.finished === 3 ? 'finishedRow' : ''
+            const classes = [];
+            if (e.row.finished === 3) classes.push('finishedRow');
+            if (this.today !== -1 && e.row.sl == this.today) classes.push('sl-used-row');
+            return classes.join(' ');
         },
         get_today: function () {
             let d = new Date();
@@ -118,7 +121,7 @@ var vm = new Vue({
             return seconds == null ? '?s' : seconds + 's';
         },
         arraySpanMethod: function ({ row, column, rowIndex, columnIndex }) {
-            if (columnIndex >= 4) {
+            if (!this.isMobile && columnIndex >= 4 && columnIndex < 10) {
                 if (columnIndex % 2 == 0) {
                     var detail = row.detail[columnIndex - 4];
                     if (detail != undefined && detail.health_remain != 0) {

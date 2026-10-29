@@ -1,9 +1,14 @@
 """Render the shared web performance ranking for the group command."""
+import asyncio
 import base64
+import time
+from pathlib import Path
+
+import httpx
 from datetime import datetime, timezone
 from io import BytesIO
 
-from PIL import Image, ImageDraw, ImageFont, ImageColor
+from PIL import Image, ImageDraw, ImageFont, ImageColor, ImageOps
 
 from ..exception import GroupNotExist, InputError
 from ..util import pcr_datetime
@@ -39,9 +44,64 @@ def performance_cells(data):
     return headers, rows, colors
 
 
-def render_performance_image(title, data):
+def _avatar_image(content):
+    with Image.open(BytesIO(content)) as source:
+        return ImageOps.fit(source.convert('RGB'), (40, 40))
+
+
+async def load_performance_avatars(data, directory):
+    """Reuse daily cached QQ portraits; a failed refresh keeps the cached image."""
+    avatars, missing = {}, []
+    directory = Path(directory) / 'user_profile'
+    for row in data['ranking']:
+        if row['total_blades'] <= 0:
+            continue
+        qqid = int(row['qqid'])
+        path = directory / f'{qqid}.jpg'
+        try:
+            avatars[qqid] = _avatar_image(path.read_bytes())
+            if time.time() - path.stat().st_mtime < 86400:
+                continue
+        except (OSError, ValueError):
+            pass
+        missing.append(qqid)
+    if not missing:
+        return avatars
+    semaphore = asyncio.Semaphore(5)
+    async with httpx.AsyncClient(timeout=3, follow_redirects=True) as client:
+        async def download(qqid):
+            async with semaphore:
+                try:
+                    response = await client.get(f'https://q1.qlogo.cn/g?b=qq&nk={qqid}&s=100')
+                    response.raise_for_status()
+                    avatar = _avatar_image(response.content)
+                    avatars[qqid] = avatar
+                    try:
+                        directory.mkdir(parents=True, exist_ok=True)
+                        # Save the validated, resized image rather than the server response.
+                        output = BytesIO()
+                        avatar.save(output, format='JPEG')
+                        path = directory / f'{qqid}.jpg'
+                        temporary = path.with_suffix('.tmp')
+                        temporary.write_bytes(output.getvalue())
+                        temporary.replace(path)
+                    except OSError:
+                        pass
+                except (httpx.HTTPError, OSError, ValueError):
+                    pass
+        try:
+            # Bound the entire batch, including queued downloads, for offline bots.
+            await asyncio.wait_for(asyncio.gather(*(download(qqid) for qqid in missing)), timeout=4)
+        except asyncio.TimeoutError:
+            pass
+    return avatars
+
+
+def render_performance_image(title, data, avatars=None):
     headers, rows, colors = performance_cells(data)
-    widths = [76, 240] + [125] * (len(headers) - 3) + [156]
+    avatars = avatars or {}
+    participants = [row for row in data['ranking'] if row['total_blades'] > 0]
+    widths = [76, 288] + [125] * (len(headers) - 3) + [156]
     padding, row_height, table_top = 36, 58, 142
     table_width = sum(widths)
     table_height = row_height * (max(1, len(rows)) + 1)
@@ -133,9 +193,23 @@ def render_performance_image(title, data):
                 draw.rounded_rectangle((x + 12, y + 10, x + width - 12, y + row_height - 10),
                                        radius=9, fill='#efebff', outline='#ded5fa')
             if column == 1:
-                text = fit(cell, selected_font, width - 28)
+                text_left = x + 16
+                if row_index and rows:
+                    avatar = avatars.get(int(participants[row_index - 1]['qqid']))
+                    avatar_x, avatar_y = text_left, y + (row_height - 40) // 2
+                    mask = Image.new('L', (40, 40), 0)
+                    ImageDraw.Draw(mask).rounded_rectangle((0, 0, 39, 39), radius=9, fill=255)
+                    if avatar is not None:
+                        image.paste(ImageOps.fit(avatar.convert('RGB'), (40, 40)), (avatar_x, avatar_y), mask)
+                    else:
+                        # A neutral silhouette keeps the identity column aligned offline.
+                        draw.rounded_rectangle((avatar_x, avatar_y, avatar_x + 39, avatar_y + 39), radius=9, fill='#dce5f1')
+                        draw.ellipse((avatar_x + 14, avatar_y + 7, avatar_x + 26, avatar_y + 19), fill='#8c9eb6')
+                        draw.rounded_rectangle((avatar_x + 8, avatar_y + 22, avatar_x + 32, avatar_y + 35), radius=9, fill='#8c9eb6')
+                    text_left += 52
+                text = fit(cell, selected_font, x + width - text_left - 12)
                 box = draw.textbbox((0, 0), text, font=selected_font)
-                draw.text((x + 16, y + (row_height - box[3] + box[1]) / 2 - box[1]),
+                draw.text((text_left, y + (row_height - box[3] + box[1]) / 2 - box[1]),
                           text, font=selected_font, fill=text_color)
             else:
                 centered(cell, selected_font, (x, y, x + width, y + row_height), text_color)
@@ -148,13 +222,14 @@ def render_performance_image(title, data):
     return image
 
 
-def score_table(self, group_id):
+async def score_table(self, group_id):
     group = self.get_clan_group(group_id=group_id)
     if group is None:
         raise GroupNotExist
     try:
         data = report(self, group, group.battle_id)
-        image = render_performance_image(performance_title(group, data), data)
+        avatars = await load_performance_avatars(data, self.setting['dirname'])
+        image = render_performance_image(performance_title(group, data), data, avatars)
     except (PerformanceError, OSError) as exc:
         raise InputError(f'业绩表生成失败：{exc}') from exc
     output = BytesIO()

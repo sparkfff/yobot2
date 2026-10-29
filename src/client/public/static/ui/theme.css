@@ -453,3 +453,22 @@ html.yobot-ui {
 @media (prefers-reduced-motion: reduce) {
   .yobot-ui *, .yobot-ui *::before, .yobot-ui *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Keep daily completion and SL use distinguishable, including striped/hover rows. */
+.yobot-ui .ui-progress .el-table .sl-used-row > td { background: #fff0df !important; color: #8a410d; }
+.yobot-ui .ui-progress .el-table .sl-used-row > td:first-child { box-shadow: inset 4px 0 #e58223; }
+.yobot-ui .ui-progress .el-table .sl-used-row.finishedRow > td { background: #eef5df !important; }
+.yobot-ui .ui-progress .sl-used-row .progress-nickname { color: #9b430d; font-weight: 700; }
+.yobot-ui .ui-progress .progress-sl-used { display: inline-block; padding: 0 5px; border-radius: 6px; background: #ac480b; color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.yobot-ui .ui-progress .progress-sl-ready { color: #21725b; font-size: 12px; }
+.yobot-ui .ui-progress .progress-sl-unknown { color: #8792a4; }
+.yobot-ui .ui-progress .progress-mobile.el-table .cell { padding: 0 3px; line-height: 20px; }
+.yobot-ui .ui-progress .progress-mobile.el-table td { padding: 8px 0; }
+.yobot-ui .ui-progress .progress-mobile .el-avatar { width: 30px; height: 30px; line-height: 30px; cursor: pointer; }
+.yobot-ui .ui-progress .progress-mobile .progress-nickname { overflow-wrap: anywhere; font-size: 13px; }
+.yobot-ui .ui-progress .progress-mobile .el-table__expanded-cell { text-align: left; }
+.yobot-ui .ui-progress .progress-mobile .el-table__expand-icon { width: 30px; height: 30px; margin: auto; }
+.yobot-ui .ui-progress .finishedRow td span { color: inherit !important; }
+.yobot-ui .ui-progress .el-table .sl-used-row td .progress-nickname { color: #9b430d !important; }
+.yobot-ui .ui-progress .el-table td .progress-sl-used { color: #fff !important; }
+.yobot-ui .ui-progress .finishedRow .el-table__expand-icon > .el-icon { background-color: transparent !important; color: #21725b; }

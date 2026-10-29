@@ -287,13 +287,14 @@ class Login:
         return user
 
     @staticmethod
-    def _set_auth_info(user: User, res: Response = None, save_user=True):
+    def _set_auth_info(user: User, res: Response = None, save_user=True, remember=True):
         """
         为某用户设置session中的授权信息
         并自动修改中的上次登录的信息
         :param user: 用户模型
         :param save_user: 是否自动执行user.save()
         :param res: 如果需要自动更新cookie，请传入返回的response
+        :param remember: 是否在关闭浏览器后保留登录凭据（最多7天）
         """
         now = int(time.time())
         session['yobot_user'] = user.qqid
@@ -312,7 +313,7 @@ class Login:
             )
             new_cookie = f'{user.qqid}:{new_key}'
             res.set_cookie(LOGIN_AUTH_COOKIE_NAME,
-                           new_cookie, max_age=EXPIRED_TIME)
+                           new_cookie, max_age=EXPIRED_TIME if remember else None)
         if save_user:
             user.save()
 
@@ -385,7 +386,9 @@ class Login:
                 if user.must_change_password:
                     callback_page = url_for('yobot_reset_pwd')
                 res = await make_response(redirect(callback_page))
-                self._set_auth_info(user, res, save_user=False)
+                # 登录链接沿用原有的7天有效期；密码登录由“记住我”决定。
+                remember = bool(key) or get_params('remember') == '1'
+                self._set_auth_info(user, res, save_user=False, remember=remember)
                 user.login_code_available = False
                 user.save()
                 return res
